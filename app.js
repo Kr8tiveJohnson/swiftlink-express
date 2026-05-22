@@ -91,7 +91,7 @@ const mockShipmentDatabase = {
 // API base URL helper: use localhost backend if page is served from file://
 const API_BASE_URL = (() => {
     if (window.location.protocol === 'file:' || window.location.origin === 'null') {
-        return 'http://localhost:5000';
+        return 'https://swiftlink-backend-tek3.onrender.com';
     }
     return window.location.origin;
 })();
