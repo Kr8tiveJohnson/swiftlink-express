@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SwiftLink Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css" />
+<style>
+:root {
+  --bg:       #06090f;
+  --surface:  #0d1420;
+  --panel:    #111827;
+  --border:   rgba(255,255,255,0.07);
+  --accent:   #00C2FF;
+  --accent2:  #7C3AED;
+  --success:  #22C55E;
+  --warning:  #F59E0B;
+  --danger:   #EF4444;
+  --text:     #e2e8f0;
+  --muted:    #64748b;
+  --font:     'Space Grotesk', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+/* LAYOUT */
+.layout { display: flex; height: 100vh; overflow: hidden; }
+.sidebar { width: 240px; min-width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { height: 60px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; }
+.content { flex: 1; overflow-y: auto; padding: 28px; }
+
+/* SIDEBAR */
+.brand { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); }
+.brand-name { font-size: 15px; font-weight: 700; color: white; }
+.brand-name span { color: var(--accent); }
+.brand-sub { font-size: 10px; color: var(--muted); font-family: var(--mono); letter-spacing: 0.1em; margin-top: 2px; }
+.nav { padding: 12px 0; flex: 1; }
+.nav-section { padding: 0 12px; margin-top: 8px; }
+.nav-section-label { font-size: 9px; font-family: var(--mono); letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; padding: 8px 8px 4px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 500; transition: all 0.18s; text-decoration: none; margin-bottom: 2px; }
+.nav-item i { width: 16px; text-align: center; font-size: 13px; }
+.nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+.nav-item.active { background: rgba(0,194,255,0.12); color: var(--accent); }
+.nav-item .badge { margin-left: auto; background: var(--accent); color: var(--bg); font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 99px; font-family: var(--mono); }
+.sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+.admin-chip { display: flex; align-items: center; gap: 10px; }
+.admin-avatar { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+.admin-info { flex: 1; min-width: 0; }
+.admin-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.admin-role { font-size: 10px; color: var(--accent); font-family: var(--mono); }
+
+/* TOPBAR */
+.page-title { font-size: 16px; font-weight: 700; color: white; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-time { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.btn-logout { padding: 6px 14px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; color: var(--danger); font-size: 12px; font-family: var(--font); font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.btn-logout:hover { background: rgba(239,68,68,0.2); }
+
+/* LOGIN SCREEN */
+#login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 999; }
+.login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 40px; width: 380px; }
+.login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+.login-logo i { color: var(--accent); font-size: 22px; }
+.login-logo span { font-size: 18px; font-weight: 700; color: white; }
+.login-logo span em { font-style: normal; color: var(--accent); }
+.login-card h2 { font-size: 20px; font-weight: 700; color: white; margin-bottom: 6px; }
+.login-card p { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 11px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.form-input { width: 100%; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none; transition: border-color 0.15s; }
+.form-input:focus { border-color: var(--accent); }
+.btn-primary { width: 100%; padding: 11px; background: var(--accent); border: none; border-radius: 8px; color: #06090f; font-family: var(--font); font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+.btn-primary:hover { opacity: 0.9; }
+.login-error { color: var(--danger); font-size: 12px; margin-top: 10px; display: none; }
+
+/* PAGES */
+.page { display: none; }
+.page.active { display: block; }
+
+/* STAT CARDS */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; overflow: hidden; }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent-color, var(--accent)); }
+.stat-label { font-size: 11px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.stat-value { font-size: 32px; font-weight: 700; color: white; margin: 8px 0 4px; font-family: var(--mono); }
+.stat-sub { font-size: 11px; color: var(--muted); }
+.stat-icon { position: absolute; top: 20px; right: 20px; font-size: 20px; opacity: 0.2; }
+
+/* TABLE */
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.panel-title { font-size: 14px; font-weight: 600; color: white; }
+.panel-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.search-box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; color: var(--text); font-size: 12px; font-family: var(--font); outline: none; width: 220px; transition: border-color 0.15s; }
+.search-box:focus { border-color: var(--accent); }
+select.filter-select { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; color: var(--text); font-size: 12px; font-family: var(--font); outline: none; cursor: pointer; }
+.btn { padding: 7px 14px; border-radius: 8px; border: none; font-family: var(--font); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-accent  { background: var(--accent); color: var(--bg); }
+.btn-accent:hover  { opacity: 0.88; }
+.btn-ghost   { background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover   { background: rgba(255,255,255,0.1); }
+.btn-danger  { background: rgba(239,68,68,0.12); color: var(--danger); border: 1px solid rgba(239,68,68,0.25); }
+.btn-danger:hover  { background: rgba(239,68,68,0.22); }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+.btn-success { background: rgba(34,197,94,0.12); color: var(--success); border: 1px solid rgba(34,197,94,0.25); }
+
+table { width: 100%; border-collapse: collapse; }
+thead th { padding: 10px 16px; font-size: 10px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; text-align: left; border-bottom: 1px solid var(--border); background: var(--panel); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.12s; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+tbody td { padding: 12px 16px; font-size: 12px; color: var(--text); }
+tbody tr:last-child { border-bottom: none; }
+.t-mono { font-family: var(--mono); }
+.t-muted { color: var(--muted); }
+
+/* STATUS BADGES */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 10px; font-family: var(--mono); font-weight: 600; text-transform: uppercase; }
+.badge-transit  { background: rgba(245,158,11,0.15); color: var(--warning); }
+.badge-hold     { background: rgba(239,68,68,0.15); color: var(--danger); }
+.badge-delivered{ background: rgba(34,197,94,0.15); color: var(--success); }
+.badge-pending  { background: rgba(100,116,139,0.2); color: var(--muted); }
+.badge-admin    { background: rgba(124,58,237,0.15); color: #a78bfa; }
+.badge-customer { background: rgba(0,194,255,0.1); color: var(--accent); }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 900; padding: 20px; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 620px; max-height: 85vh; overflow-y: auto; }
+.modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-size: 15px; font-weight: 700; color: white; }
+.modal-close { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px; }
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* FORM GRID */
+.form-row { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; margin-bottom: 16px; }
+.form-row.single { grid-template-columns: 1fr; }
+.form-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+
+/* HISTORY TABLE inside modal */
+.history-row { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.history-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.history-dot.alert { background: var(--danger); box-shadow: 0 0 0 3px rgba(239,68,68,0.2); }
+.history-dot.normal { background: var(--success); }
+
+/* EMPTY STATE */
+.empty-state { padding: 48px 20px; text-align: center; color: var(--muted); }
+.empty-state i { font-size: 32px; margin-bottom: 12px; display: block; opacity: 0.3; }
+
+/* PAGINATION */
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+.page-btns { display: flex; gap: 4px; }
+.page-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; transition: all 0.15s; }
+.page-btn:hover { border-color: var(--accent); color: var(--accent); }
+.page-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 700; }
+
+/* SETTINGS */
+.settings-grid { display: grid; gap: 16px; }
+.setting-row { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.setting-info .setting-label { font-weight: 600; color: white; font-size: 13px; }
+.setting-info .setting-desc  { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.toggle { width: 40px; height: 22px; background: var(--border); border-radius: 11px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+.toggle.on { background: var(--accent); }
+.toggle::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: transform 0.2s; }
+.toggle.on::after { transform: translateX(18px); }
+
+/* CONFIRM */
+.confirm-modal { max-width: 380px; }
+
+/* Notifications */
+.toast-container { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 12px; display: flex; align-items: center; gap: 10px; min-width: 260px; animation: slideIn 0.3s ease; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error   { border-left: 3px solid var(--danger); }
+.toast.info    { border-left: 3px solid var(--accent); }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* Responsive: stack layout and make sidebar horizontal on small screens */
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .sidebar { width: 100%; min-width: 0; height: auto; display: flex; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); }
+  .sidebar .brand { display: flex; align-items: center; gap: 12px; padding: 12px; }
+  .nav { display: flex; flex-direction: row; gap: 8px; padding: 8px; }
+  .nav-section { margin-top: 0; padding: 0 6px; }
+  .nav-item { white-space: nowrap; margin-bottom: 0; padding: 8px 10px; border-radius: 8px; }
+  .main { width: 100%; }
+  .topbar { padding: 0 12px; }
+  .content { padding: 16px; }
+  .sidebar-footer { display: none; }
+  .toast { min-width: 200px; }
+}
+
+/* Small toggle button for collapsed sidebar on very small devices */
+@media (max-width: 560px) {
+  .sidebar { display: none; }
+  .sidebar.open { display: flex; position: absolute; z-index: 1000; left: 0; top: 60px; right: 0; background: var(--surface); }
+  .topbar .menu-toggle { display: inline-flex; }
+}
+
+/* Collapsed sidebar for narrow desktop/tablet widths */
+.sidebar.collapsed { width: 72px; min-width: 72px; }
+.sidebar.collapsed .brand-name, .sidebar.collapsed .brand-sub, .sidebar.collapsed .admin-info { display: none; }
+.sidebar.collapsed .nav-section-label { display: none; }
+.sidebar.collapsed .nav-item { justify-content: center; padding: 10px 6px; }
+.sidebar.collapsed .nav-item .nav-text { display: none; }
+.sidebar.collapsed .sidebar-footer { display: none; }
+.sidebar { transition: width 0.18s ease; }
+.main { transition: margin-left 0.18s ease; }
+
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo"><i class="fa-solid fa-layer-group"></i><span>SwiftLink <em>Express</em></span></div>
+    <h2>Admin Access</h2>
+    <p>Sign in to manage shipments, users, and site settings.</p>
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input id="l-email" type="email" class="form-input" placeholder="admin@swiftlink-express.com" autocomplete="off" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input id="l-pass" type="password" class="form-input" placeholder="••••••••••" autocomplete="off" />
+    </div>
+    <button class="btn-primary" onclick="doLogin()"><i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In to Dashboard</button>
+    <p id="login-err" class="login-error">Invalid credentials. Please try again.</p>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Dashboard -->
+<div class="layout" id="dashboard" style="display:none">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-name"><i class="fa-solid fa-layer-group" style="color:var(--accent);margin-right:8px"></i>SwiftLink <span>Express</span></div>
+      <div class="brand-sub">ADMIN CONTROL PANEL</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">
+        <div class="nav-section-label">Overview</div>
+        <a class="nav-item active" onclick="showPage('dashboard')" href="#"><i class="fa-solid fa-gauge-high"></i> <span class="nav-text">Dashboard</span></a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">Logistics</div>
+        <a class="nav-item" onclick="showPage('shipments')" href="#"><i class="fa-solid fa-boxes-stacked"></i> <span class="nav-text">Shipments</span></a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">System</div>
+        <a class="nav-item" onclick="showPage('users')" href="#"><i class="fa-solid fa-users"></i> <span class="nav-text">Users</span></a>
+        <a class="nav-item" onclick="showPage('sessions')" href="#"><i class="fa-solid fa-shield-halved"></i> <span class="nav-text">Sessions</span></a>
+        <a class="nav-item" onclick="showPage('contacts')" href="#"><i class="fa-solid fa-envelope"></i> <span class="nav-text">Inquiries</span></a>
+        <a class="nav-item" onclick="showPage('settings')" href="#"><i class="fa-solid fa-gear"></i> <span class="nav-text">Settings</span></a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">Site</div>
+        <a class="nav-item" onclick="window.open('/','_blank')" href="#"><i class="fa-solid fa-globe"></i> <span class="nav-text">View Website</span></a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="admin-chip">
+        <div class="admin-avatar" id="sb-avatar">A</div>
+        <div class="admin-info">
+          <div class="admin-name" id="sb-name">Admin</div>
+          <div class="admin-role">ADMINISTRATOR</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <span class="page-title" id="topbar-title">Dashboard</span>
+      <div class="topbar-right">
+        <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars" style="font-size:16px;color:var(--muted)"></i></button>
+        <button class="collapse-toggle" onclick="toggleCollapseSidebar()" title="Collapse/Expand sidebar" style="margin-left:8px"><i class="fa-solid fa-angle-left" id="collapse-icon" style="font-size:14px;color:var(--muted)"></i></button>
+        <span class="topbar-time" id="live-clock"></span>
+        <button class="btn-logout" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD PAGE -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card" style="--accent-color:var(--accent)"><i class="fa-solid fa-boxes-stacked stat-icon"></i><div class="stat-label">Total Shipments</div><div class="stat-value" id="stat-total">—</div><div class="stat-sub">All time</div></div>
+          <div class="stat-card" style="--accent-color:var(--warning)"><i class="fa-solid fa-truck-fast stat-icon"></i><div class="stat-label">In Transit</div><div class="stat-value" id="stat-transit">—</div><div class="stat-sub">Active</div></div>
+          <div class="stat-card" style="--accent-color:var(--danger)"><i class="fa-solid fa-circle-pause stat-icon"></i><div class="stat-label">On Hold</div><div class="stat-value" id="stat-hold">—</div><div class="stat-sub">Needs action</div></div>
+          <div class="stat-card" style="--accent-color:var(--success)"><i class="fa-solid fa-circle-check stat-icon"></i><div class="stat-label">Delivered</div><div class="stat-value" id="stat-delivered">—</div><div class="stat-sub">Completed</div></div>
+          <div class="stat-card" style="--accent-color:var(--accent2)"><i class="fa-solid fa-users stat-icon"></i><div class="stat-label">Total Users</div><div class="stat-value" id="stat-users">—</div><div class="stat-sub">Registered</div></div>
+          <div class="stat-card" style="--accent-color:#10b981"><i class="fa-solid fa-wifi stat-icon"></i><div class="stat-label">Active Sessions</div><div class="stat-value" id="stat-sessions">—</div><div class="stat-sub">Right now</div></div>
+          <div class="stat-card" style="--accent-color:var(--accent2)"><i class="fa-solid fa-envelope stat-icon"></i><div class="stat-label">New Inquiries</div><div class="stat-value" id="stat-contacts">—</div><div class="stat-sub">From website</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Recent Shipments</span><button class="btn btn-ghost btn-sm" onclick="showPage('shipments')">View All <i class="fa-solid fa-arrow-right"></i></button></div>
+          <div style="overflow-x:auto"><table><thead><tr><th>Tracking #</th><th>Receiver</th><th>Origin → Destination</th><th>Status</th><th>Ship Date</th><th>Action</th></tr></thead><tbody id="recent-table"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- SHIPMENTS PAGE -->
+      <div class="page" id="page-shipments">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">All Shipments</span>
+            <div class="panel-tools">
+              <input type="text" class="search-box" placeholder="Search tracking, name..." id="sh-search" oninput="debounce(loadShipments,350)()" />
+              <select class="filter-select" id="sh-status" onchange="loadShipments()">
+                <option value="">All Status</option>
+                <option value="transit">In Transit</option>
+                <option value="on-hold">On Hold</option>
+                <option value="delivered">Delivered</option>
+                <option value="pending">Pending</option>
+              </select>
+              <button class="btn btn-accent btn-sm" onclick="openShipmentModal()"><i class="fa-solid fa-plus"></i> New Shipment</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto"><table><thead><tr><th>Tracking #</th><th>Shipper</th><th>Receiver</th><th>Route</th><th>Status</th><th>ETA</th><th>Actions</th></tr></thead><tbody id="sh-table"></tbody></table></div>
+          <div class="pagination"><span id="sh-page-info">Loading...</span><div class="page-btns" id="sh-pager"></div></div>
+        </div>
+      </div>
+
+      <!-- CONTACTS PAGE -->
+      <div class="page" id="page-contacts">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Incoming Inquiries</span>
+            <button class="btn btn-accent btn-sm" onclick="loadContacts()"><i class="fa-solid fa-sync"></i> Refresh</button>
+          </div>
+          <div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Tracking Ref</th><th>Message</th><th>Submitted</th><th>Action</th></tr></thead><tbody id="contacts-table"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- USERS PAGE -->
+      <div class="page" id="page-users">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">User Management</span>
+            <div class="panel-tools">
+              <button class="btn btn-accent btn-sm" onclick="openUserModal()"><i class="fa-solid fa-user-plus"></i> Add User</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Verified</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="users-table"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- SESSIONS PAGE -->
+      <div class="page" id="page-sessions">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Active Sessions</span>
+            <div class="panel-tools">
+              <input type="text" class="search-box" placeholder="Filter by email..." id="ses-search" oninput="loadSessions()" />
+              <select class="filter-select" id="ses-role" onchange="loadSessions()">
+                <option value="">All Roles</option>
+                <option value="admin">Admin</option>
+                <option value="customer">Customer</option>
+              </select>
+            </div>
+          </div>
+          <div style="overflow-x:auto"><table><thead><tr><th>User</th><th>Role</th><th>Device</th><th>IP</th><th>Expires</th><th>Action</th></tr></thead><tbody id="ses-table"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS PAGE -->
+      <div class="page" id="page-settings">
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-header"><span class="panel-title">Site Settings</span></div>
+          <div style="padding:24px">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Site Name</label><input id="set-name" class="form-input" /></div>
+              <div class="form-group"><label class="form-label">Support Email</label><input id="set-email" class="form-input" /></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Support Phone</label><input id="set-phone" class="form-input" /></div>
+            </div>
+            <div class="settings-grid" style="margin-top:8px">
+              <div class="setting-row">
+                <div class="setting-info"><div class="setting-label">Maintenance Mode</div><div class="setting-desc">Disable the public website for all visitors</div></div>
+                <div class="toggle" id="tog-maintenance" onclick="toggleSetting('maintenanceMode')"></div>
+              </div>
+              <div class="setting-row">
+                <div class="setting-info"><div class="setting-label">Public Tracking</div><div class="setting-desc">Allow anyone to look up shipments without login</div></div>
+                <div class="toggle on" id="tog-tracking" onclick="toggleSetting('allowPublicTracking')"></div>
+              </div>
+            </div>
+            <div style="margin-top:20px; text-align:right"><button class="btn btn-accent" onclick="saveSettings()"><i class="fa-solid fa-floppy-disk"></i> Save Settings</button></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ── MODALS ────────────────────────────────────────────────────────────────── -->
+
+<!-- Shipment Create/Edit Modal -->
+<div class="modal-overlay" id="modal-shipment">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="sh-modal-title">New Shipment</span><button class="modal-close" onclick="closeModal('modal-shipment')"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="sh-id" />
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tracking Number *</label><input id="sh-tracking" class="form-input" placeholder="e.g. SL-999-TEST" /></div>
+        <div class="form-group"><label class="form-label">Status</label>
+          <select id="sh-status-field" class="form-input">
+            <option value="pending">Pending</option><option value="transit">In Transit</option><option value="on-hold">On Hold</option><option value="delivered">Delivered</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Ship Date</label><input id="sh-shipdate" type="date" class="form-input" /></div>
+        <div class="form-group"><label class="form-label">Est. Delivery Date</label><input id="sh-eta" type="date" class="form-input" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Origin Country</label><input id="sh-origin-country" class="form-input" placeholder="UK" /></div>
+        <div class="form-group"><label class="form-label">Origin City</label><input id="sh-origin-city" class="form-input" placeholder="London" /></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label class="form-label">Destination Address</label><input id="sh-dest-addr" class="form-input" placeholder="Full destination address" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Shipper Name</label><input id="sh-shipper-name" class="form-input" /></div>
+        <div class="form-group"><label class="form-label">Shipper Address</label><input id="sh-shipper-addr" class="form-input" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Receiver Name</label><input id="sh-recv-name" class="form-input" /></div>
+        <div class="form-group"><label class="form-label">Receiver Address</label><input id="sh-recv-addr" class="form-input" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Service Type</label><input id="sh-service-type" class="form-input" placeholder="Air Freight Express Premium" /></div>
+        <div class="form-group"><label class="form-label">Mode</label>
+          <select id="sh-service-mode" class="form-input"><option>AIR</option><option>SEA</option><option>ROAD</option><option>RAIL</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Cargo Description</label><input id="sh-cargo-desc" class="form-input" /></div>
+        <div class="form-group"><label class="form-label">Weight (kg)</label><input id="sh-weight" type="number" class="form-input" placeholder="14.5" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Quantity</label><input id="sh-qty" class="form-input" placeholder="7 Units" /></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-shipment')">Cancel</button><button class="btn btn-accent" onclick="saveShipment()"><i class="fa-solid fa-floppy-disk"></i> Save Shipment</button></div>
+  </div>
+</div>
+
+<!-- Shipment Detail / History Modal -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="max-width:780px">
+    <div class="modal-header"><span class="modal-title" id="detail-title">Shipment Details</span><button class="modal-close" onclick="closeModal('modal-detail')"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body" id="detail-body"></div>
+  </div>
+</div>
+
+<!-- Add History Entry Modal -->
+<div class="modal-overlay" id="modal-history">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><span class="modal-title">Add History Event</span><button class="modal-close" onclick="closeModal('modal-history')"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="hist-shipment-id" />
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Date/Time</label><input id="hist-ts" type="datetime-local" class="form-input" /></div>
+        <div class="form-group"><label class="form-label">Status Update (newStatus)</label>
+          <select id="hist-new-status" class="form-input"><option value="">-- No change --</option><option value="pending">Pending</option><option value="transit">In Transit</option><option value="on-hold">On Hold</option><option value="delivered">Delivered</option></select>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label class="form-label">Activity Description *</label><input id="hist-activity" class="form-input" placeholder="e.g. CUSTOMS CLEARANCE PROCESSING" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Location City</label><input id="hist-city" class="form-input" /></div>
+        <div class="form-group"><label class="form-label">Location Country</label><input id="hist-country" class="form-input" /></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label class="form-label">Details / Status Text</label><input id="hist-details" class="form-input" placeholder="IN TRANSIT / ON HOLD / DELIVERED..." /></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label class="form-label">Alert Tag (optional)</label><input id="hist-alert" class="form-input" placeholder="e.g. HOLD (creates red highlight)" /></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-history')">Cancel</button><button class="btn btn-accent" onclick="saveHistoryEntry()"><i class="fa-solid fa-plus"></i> Add Event</button></div>
+  </div>
+</div>
+
+<!-- User Modal -->
+<div class="modal-overlay" id="modal-user">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><span class="modal-title" id="user-modal-title">Add User</span><button class="modal-close" onclick="closeModal('modal-user')"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="u-id" />
+      <div class="form-row single"><div class="form-group"><label class="form-label">Full Name</label><input id="u-name" class="form-input" /></div></div>
+      <div class="form-row single"><div class="form-group"><label class="form-label">Email</label><input id="u-email" type="email" class="form-input" /></div></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Password <span style="color:var(--muted)">(leave blank to keep)</span></label><input id="u-pass" type="password" class="form-input" /></div>
+        <div class="form-group"><label class="form-label">Role</label><select id="u-role" class="form-input"><option value="customer">Customer</option><option value="admin">Admin</option></select></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-user')">Cancel</button><button class="btn btn-accent" onclick="saveUser()"><i class="fa-solid fa-floppy-disk"></i> Save</button></div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal confirm-modal">
+    <div class="modal-header"><span class="modal-title">Confirm Action</span><button class="modal-close" onclick="closeModal('modal-confirm')"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body"><p id="confirm-text" style="color:var(--text);line-height:1.6"></p></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-confirm')">Cancel</button><button class="btn btn-danger" id="confirm-yes">Confirm</button></div>
+  </div>
+</div>
+
+<script>
+const API = '';  // same origin
+let TOKEN = '';
+let currentUser = null;
+let shPage = 1;
+const shPageSize = 12;
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('l-email').value;
+  const pass  = document.getElementById('l-pass').value;
+  try {
+    const r = await fetch(`${API}/api/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password:pass}) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error?.message || 'Login failed');
+    TOKEN = j.data.token;
+    currentUser = j.data.user;
+    if (currentUser.role !== 'admin') throw new Error('Admin access only');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'flex';
+    document.getElementById('sb-name').textContent = currentUser.name;
+    document.getElementById('sb-avatar').textContent = currentUser.name[0].toUpperCase();
+    initDashboard();
+  } catch(e) {
+    document.getElementById('login-err').style.display = 'block';
+    document.getElementById('login-err').textContent = e.message;
+  }
+}
+async function doLogout() {
+  await fetch(`${API}/api/auth/logout`, { method:'POST', headers:{Authorization:`Bearer ${TOKEN}`} }).catch(()=>{});
+  TOKEN = ''; location.reload();
+}
+
+// ── API HELPER ────────────────────────────────────────────────────────────────
+async function api(path, opts={}) {
+  const res = await fetch(`${API}${path}`, { headers: {'Content-Type':'application/json', ...(TOKEN ? {Authorization:`Bearer ${TOKEN}`} : {})}, ...opts });
+  const j = await res.json();
+  if (!res.ok) throw new Error(j.error?.message || `Error ${res.status}`);
+  return j;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function initDashboard() {
+  loadStats();
+  startClock();
+}
+function startClock() {
+  const el = document.getElementById('live-clock');
+  const tick = () => el.textContent = new Date().toLocaleTimeString('en-US',{hour12:false});
+  tick(); setInterval(tick, 1000);
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+const PAGE_TITLES = { dashboard:'Dashboard', shipments:'Shipments', users:'Users', sessions:'Sessions', settings:'Settings' };
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${id}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => { if(n.getAttribute('onclick')?.includes(id)) n.classList.add('active'); });
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[id] || id;
+  if (id==='shipments') loadShipments();
+  if (id==='users')     loadUsers();
+  if (id==='sessions')  loadSessions();
+  if (id==='contacts')  loadContacts();
+  if (id==='settings')  loadSettings();
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const j = await api('/api/admin/stats');
+    const d = j.data;
+    document.getElementById('stat-total').textContent    = d.totalShipments;
+    document.getElementById('stat-transit').textContent  = d.statusBreakdown.transit || 0;
+    document.getElementById('stat-hold').textContent     = d.statusBreakdown['on-hold'] || 0;
+    document.getElementById('stat-delivered').textContent= d.statusBreakdown.delivered || 0;
+    document.getElementById('stat-users').textContent    = d.totalUsers;
+    document.getElementById('stat-sessions').textContent = d.activeSessions;
+    document.getElementById('stat-contacts').textContent = d.totalContacts || 0;
+
+    const tbody = document.getElementById('recent-table');
+    tbody.innerHTML = '';
+    (d.recentShipments||[]).forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="t-mono">${s.trackingNumber}</td><td>${s.receiver?.name||'—'}</td><td>${s.origin?.country||'—'} → ${s.destination?.city||s.destination?.country||'—'}</td><td>${statusBadge(s.status)}</td><td class="t-muted">${s.shipDate||'—'}</td><td><button class="btn btn-ghost btn-sm" onclick="viewShipmentDetail('${s.id}')"><i class="fa-solid fa-eye"></i></button></td>`;
+      tbody.appendChild(tr);
+    });
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function loadContacts() {
+  try {
+    const j = await api('/api/admin/contacts');
+    const tbody = document.getElementById('contacts-table');
+    tbody.innerHTML = '';
+    if (!j.data.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-envelope-open-text"></i>No inquiries yet</div></td></tr>`;
+      return;
+    }
+    j.data.forEach(c => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${c.name}</td><td class="t-mono">${c.email}</td><td>${c.phone||'—'}</td><td class="t-mono">${c.trackingRef||'—'}</td><td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.message}</td><td class="t-muted">${c.createdAt?new Date(c.createdAt).toLocaleString():'—'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteContact('${c.id}')"><i class="fa-solid fa-trash"></i></button></td>`;
+      tbody.appendChild(tr);
+    });
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deleteContact(id) {
+  if (!confirm('Delete this inquiry?')) return;
+  try {
+    await api(`/api/admin/contacts/${id}`, { method: 'DELETE' });
+    toast('Inquiry removed');
+    loadContacts();
+    loadStats();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ── SHIPMENTS ─────────────────────────────────────────────────────────────────
+async function loadShipments(page=shPage) {
+  shPage = page;
+  const q      = document.getElementById('sh-search').value;
+  const status = document.getElementById('sh-status').value;
+  try {
+    const j = await api(`/api/admin/shipments?q=${encodeURIComponent(q)}&status=${status}&page=${page}&limit=${shPageSize}`);
+    const tbody = document.getElementById('sh-table');
+    tbody.innerHTML = '';
+    if (!j.data.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class="fa-solid fa-box-open"></i>No shipments found</div></td></tr>`; }
+    j.data.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="t-mono" style="color:var(--accent)">${s.trackingNumber}</td><td>${s.shipper?.name||'—'}</td><td>${s.receiver?.name||'—'}</td><td class="t-muted">${s.origin?.country||'—'} → ${s.destination?.city||s.destination?.country||'—'}</td><td>${statusBadge(s.status)}</td><td class="t-muted">${s.estimatedDeliveryDate||'—'}</td><td style="display:flex;gap:6px;padding:12px 16px">
+        <button class="btn btn-ghost btn-sm" title="View" onclick="viewShipmentDetail('${s.id}')"><i class="fa-solid fa-eye"></i></button>
+        <button class="btn btn-ghost btn-sm" title="Edit" onclick="openShipmentModal('${s.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-danger btn-sm" title="Delete" onclick="deleteShipment('${s.id}','${s.trackingNumber}')"><i class="fa-solid fa-trash"></i></button>
+      </td>`;
+      tbody.appendChild(tr);
+    });
+    // Pagination
+    const meta = j.meta;
+    document.getElementById('sh-page-info').textContent = `Showing ${(page-1)*shPageSize+1}–${Math.min(page*shPageSize, meta.total)} of ${meta.total}`;
+    const pager = document.getElementById('sh-pager');
+    pager.innerHTML = '';
+    for (let p=1;p<=meta.pages;p++) {
+      const b = document.createElement('button');
+      b.className = 'page-btn' + (p===page?' active':'');
+      b.textContent = p;
+      b.onclick = () => loadShipments(p);
+      pager.appendChild(b);
+    }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function openShipmentModal(id) {
+  document.getElementById('sh-id').value = '';
+  ['sh-tracking','sh-shipdate','sh-eta','sh-origin-country','sh-origin-city','sh-dest-addr','sh-shipper-name','sh-shipper-addr','sh-recv-name','sh-recv-addr','sh-service-type','sh-cargo-desc','sh-weight','sh-qty'].forEach(i => document.getElementById(i).value='');
+  if (id) {
+    document.getElementById('sh-modal-title').textContent = 'Edit Shipment';
+    try {
+      const j = await api(`/api/admin/shipments/${id}`);
+      const s = j.data.shipment;
+      document.getElementById('sh-id').value = s.id;
+      document.getElementById('sh-tracking').value = s.trackingNumber||'';
+      document.getElementById('sh-status-field').value = s.status||'pending';
+      document.getElementById('sh-shipdate').value = s.shipDate||'';
+      document.getElementById('sh-eta').value = s.estimatedDeliveryDate||'';
+      document.getElementById('sh-origin-country').value = s.origin?.country||'';
+      document.getElementById('sh-origin-city').value    = s.origin?.city||'';
+      document.getElementById('sh-dest-addr').value      = s.destination?.address||'';
+      document.getElementById('sh-shipper-name').value   = s.shipper?.name||'';
+      document.getElementById('sh-shipper-addr').value   = s.shipper?.address||'';
+      document.getElementById('sh-recv-name').value      = s.receiver?.name||'';
+      document.getElementById('sh-recv-addr').value      = s.receiver?.address||'';
+      document.getElementById('sh-service-type').value   = s.service?.type||'';
+      document.getElementById('sh-service-mode').value   = s.service?.mode||'AIR';
+      document.getElementById('sh-cargo-desc').value     = s.cargo?.description||'';
+      document.getElementById('sh-weight').value         = s.cargo?.weight?.value||'';
+      document.getElementById('sh-qty').value            = s.cargo?.quantity||'';
+    } catch(e) { toast(e.message,'error'); return; }
+  } else {
+    document.getElementById('sh-modal-title').textContent = 'New Shipment';
+  }
+  openModal('modal-shipment');
+}
+
+async function saveShipment() {
+  const id = document.getElementById('sh-id').value;
+  const body = {
+    trackingNumber: document.getElementById('sh-tracking').value.trim().toUpperCase(),
+    status:         document.getElementById('sh-status-field').value,
+    shipDate:       document.getElementById('sh-shipdate').value,
+    estimatedDeliveryDate: document.getElementById('sh-eta').value,
+    origin: { country: document.getElementById('sh-origin-country').value, city: document.getElementById('sh-origin-city').value },
+    destination: { address: document.getElementById('sh-dest-addr').value },
+    shipper:  { name: document.getElementById('sh-shipper-name').value, address: document.getElementById('sh-shipper-addr').value },
+    receiver: { name: document.getElementById('sh-recv-name').value,  address: document.getElementById('sh-recv-addr').value },
+    service:  { type: document.getElementById('sh-service-type').value, mode: document.getElementById('sh-service-mode').value },
+    cargo:    { description: document.getElementById('sh-cargo-desc').value, weight: { value: parseFloat(document.getElementById('sh-weight').value)||0, unit:'kg' }, quantity: document.getElementById('sh-qty').value }
+  };
+  if (!body.trackingNumber) { toast('Tracking number is required','error'); return; }
+  try {
+    if (id) { await api(`/api/admin/shipments/${id}`, { method:'PUT', body: JSON.stringify(body) }); toast('Shipment updated!'); }
+    else     { await api('/api/admin/shipments',       { method:'POST', body: JSON.stringify(body) }); toast('Shipment created!'); }
+    closeModal('modal-shipment');
+    loadShipments();
+    loadStats();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deleteShipment(id, tn) {
+  confirm2(`Delete shipment ${tn}? This cannot be undone.`, async () => {
+    try { await api(`/api/admin/shipments/${id}`, {method:'DELETE'}); toast('Deleted'); loadShipments(); loadStats(); }
+    catch(e) { toast(e.message,'error'); }
+  });
+}
+
+async function viewShipmentDetail(id) {
+  try {
+    const j = await api(`/api/admin/shipments/${id}`);
+    const s = j.data.shipment;
+    const h = j.data.history;
+    document.getElementById('detail-title').textContent = `Shipment: ${s.trackingNumber}`;
+    const body = document.getElementById('detail-body');
+    body.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;margin-bottom:4px">Tracking #</div><div style="font-family:var(--mono);color:var(--accent);font-weight:700">${s.trackingNumber}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;margin-bottom:4px">Status</div>${statusBadge(s.status)}</div>
+        <div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;margin-bottom:4px">Shipper</div><div style="font-size:13px">${s.shipper?.name||'—'}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;margin-bottom:4px">Receiver</div><div style="font-size:13px">${s.receiver?.name||'—'}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;margin-bottom:4px">Origin</div><div>${s.origin?.city||''} ${s.origin?.country||''}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;margin-bottom:4px">Destination</div><div>${s.destination?.address||'—'}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;margin-bottom:4px">Cargo</div><div>${s.cargo?.description||'—'}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;margin-bottom:4px">Weight / Qty</div><div>${s.cargo?.weight?.value||'—'} ${s.cargo?.weight?.unit||''} / ${s.cargo?.quantity||'—'}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:600;color:white">Travel History</div>
+        <button class="btn btn-accent btn-sm" onclick="openHistoryModal('${s.id}')"><i class="fa-solid fa-plus"></i> Add Event</button>
+      </div>
+      <div id="history-list">
+        ${h.length ? h.map(e => `
+          <div class="history-row">
+            <div class="history-dot ${e.alerts&&e.alerts.length?'alert':'normal'}"></div>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                <div style="font-size:12px;font-weight:600;color:white">${e.activity}</div>
+                <div style="font-size:10px;font-family:var(--mono);color:var(--muted);flex-shrink:0;margin-left:12px">${e.timestamp?new Date(e.timestamp).toLocaleDateString():''}</div>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">${e.location?.city||''} ${e.location?.country||''} — ${e.details||''}</div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="deleteHistoryEntry('${e.id}','${s.id}')"><i class="fa-solid fa-trash"></i></button>
+          </div>`).join('') : '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">No history events</div>'}
+      </div>`;
+    openModal('modal-detail');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+function openHistoryModal(shipmentId) {
+  document.getElementById('hist-shipment-id').value = shipmentId;
+  document.getElementById('hist-ts').value = new Date().toISOString().slice(0,16);
+  ['hist-activity','hist-city','hist-country','hist-details','hist-alert'].forEach(i => document.getElementById(i).value='');
+  document.getElementById('hist-new-status').value = '';
+  openModal('modal-history');
+}
+
+async function saveHistoryEntry() {
+  const shipId = document.getElementById('hist-shipment-id').value;
+  const alert_ = document.getElementById('hist-alert').value.trim();
+  const body = {
+    timestamp:  document.getElementById('hist-ts').value,
+    activity:   document.getElementById('hist-activity').value.trim(),
+    location:   { city: document.getElementById('hist-city').value, country: document.getElementById('hist-country').value },
+    details:    document.getElementById('hist-details').value.trim(),
+    alerts:     alert_ ? [alert_] : [],
+    newStatus:  document.getElementById('hist-new-status').value || undefined
+  };
+  if (!body.activity) { toast('Activity description is required','error'); return; }
+  try {
+    await api(`/api/admin/shipments/${shipId}/history`, { method:'POST', body: JSON.stringify(body) });
+    toast('History event added!');
+    closeModal('modal-history');
+    viewShipmentDetail(shipId); // refresh detail
+    loadStats();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deleteHistoryEntry(entryId, shipId) {
+  confirm2('Delete this history event?', async () => {
+    try { await api(`/api/admin/history/${entryId}`, {method:'DELETE'}); toast('Event deleted'); viewShipmentDetail(shipId); }
+    catch(e) { toast(e.message,'error'); }
+  });
+}
+
+// ── USERS ─────────────────────────────────────────────────────────────────────
+async function loadUsers() {
+  try {
+    const j = await api('/api/admin/users');
+    const tbody = document.getElementById('users-table');
+    tbody.innerHTML = '';
+    j.data.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${u.name}</td><td class="t-mono">${u.email}</td><td>${roleBadge(u.role)}</td><td>${u.verified?'<span style="color:var(--success)">✓ Yes</span>':'<span style="color:var(--muted)">No</span>'}</td><td class="t-muted">${u.createdAt?new Date(u.createdAt).toLocaleDateString():''}</td><td style="display:flex;gap:6px;padding:12px 16px">
+        <button class="btn btn-ghost btn-sm" onclick="openUserModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}','${u.name}')"><i class="fa-solid fa-trash"></i></button>
+      </td>`;
+      tbody.appendChild(tr);
+    });
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function openUserModal(id) {
+  document.getElementById('u-id').value = '';
+  ['u-name','u-email','u-pass'].forEach(i => document.getElementById(i).value='');
+  if (id) {
+    document.getElementById('user-modal-title').textContent = 'Edit User';
+    const j = await api('/api/admin/users');
+    const u = j.data.find(x => x.id===id);
+    if (u) { document.getElementById('u-id').value=u.id; document.getElementById('u-name').value=u.name; document.getElementById('u-email').value=u.email; document.getElementById('u-role').value=u.role; }
+  } else { document.getElementById('user-modal-title').textContent = 'Add User'; }
+  openModal('modal-user');
+}
+
+async function saveUser() {
+  const id   = document.getElementById('u-id').value;
+  const body = { name: document.getElementById('u-name').value, email: document.getElementById('u-email').value, role: document.getElementById('u-role').value };
+  const pass = document.getElementById('u-pass').value;
+  if (pass) body.password = pass;
+  if (!body.name||!body.email) { toast('Name and email required','error'); return; }
+  if (!id && !pass) { toast('Password required for new user','error'); return; }
+  try {
+    if (id) await api(`/api/admin/users/${id}`, {method:'PUT', body:JSON.stringify(body)});
+    else    await api('/api/admin/users',       {method:'POST',body:JSON.stringify(body)});
+    toast('User saved!'); closeModal('modal-user'); loadUsers();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function deleteUser(id, name) {
+  confirm2(`Delete user "${name}"?`, async () => {
+    try { await api(`/api/admin/users/${id}`, {method:'DELETE'}); toast('User deleted'); loadUsers(); loadStats(); }
+    catch(e) { toast(e.message,'error'); }
+  });
+}
+
+// ── SESSIONS ──────────────────────────────────────────────────────────────────
+async function loadSessions() {
+  const q    = document.getElementById('ses-search').value;
+  const role = document.getElementById('ses-role').value;
+  try {
+    const j = await api(`/api/admin/sessions?q=${encodeURIComponent(q)}&role=${role}`);
+    const tbody = document.getElementById('ses-table');
+    tbody.innerHTML = '';
+    let rows = 0;
+    j.data.forEach(u => {
+      u.sessions.forEach(s => {
+        rows++;
+        const expired = new Date(s.expiresAt) < new Date();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${u.name}<div class="t-mono" style="font-size:10px;color:var(--muted)">${u.email}</div></td><td>${roleBadge(u.role)}</td><td class="t-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${s.deviceName||s.userAgent||'—'}</td><td class="t-mono t-muted">${s.ip||'—'}</td><td class="${expired?'t-muted':''}"><span style="color:${expired?'var(--muted)':'var(--success)'}">${s.expiresAt?new Date(s.expiresAt).toLocaleString():''}</span></td><td>
+          <button class="btn btn-danger btn-sm" onclick="revokeSession('${u.id}','${s.id}')"><i class="fa-solid fa-ban"></i> Revoke</button>
+        </td>`;
+        tbody.appendChild(tr);
+      });
+    });
+    if (!rows) tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fa-solid fa-shield-halved"></i>No active sessions</div></td></tr>`;
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function revokeSession(userId, sessionId) {
+  confirm2('Revoke this session? The user will be logged out.', async () => {
+    try { await api(`/api/admin/sessions/${userId}/${sessionId}`, {method:'DELETE'}); toast('Session revoked'); loadSessions(); loadStats(); }
+    catch(e) { toast(e.message,'error'); }
+  });
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+let settingsCache = {};
+async function loadSettings() {
+  try {
+    const j = await api('/api/admin/settings');
+    settingsCache = j.data;
+    document.getElementById('set-name').value  = settingsCache.siteName||'';
+    document.getElementById('set-email').value = settingsCache.supportEmail||'';
+    document.getElementById('set-phone').value = settingsCache.supportPhone||'';
+    setToggle('tog-maintenance',  settingsCache.maintenanceMode);
+    setToggle('tog-tracking',     settingsCache.allowPublicTracking);
+  } catch(e) { toast(e.message,'error'); }
+}
+function setToggle(id, val) { const el = document.getElementById(id); el.classList.toggle('on', !!val); }
+function toggleSetting(key) { settingsCache[key] = !settingsCache[key]; if (key==='maintenanceMode') setToggle('tog-maintenance', settingsCache[key]); if (key==='allowPublicTracking') setToggle('tog-tracking', settingsCache[key]); }
+async function saveSettings() {
+  const body = { ...settingsCache, siteName: document.getElementById('set-name').value, supportEmail: document.getElementById('set-email').value, supportPhone: document.getElementById('set-phone').value };
+  try { await api('/api/admin/settings', {method:'PUT', body:JSON.stringify(body)}); toast('Settings saved!'); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────────────────────
+function statusBadge(status) {
+  const map = { transit:'badge-transit', 'on-hold':'badge-hold', delivered:'badge-delivered', pending:'badge-pending' };
+  const labels = { transit:'In Transit', 'on-hold':'On Hold', delivered:'Delivered', pending:'Pending' };
+  return `<span class="badge ${map[status]||'badge-pending'}">${labels[status]||status}</span>`;
+}
+function roleBadge(role) {
+  return `<span class="badge ${role==='admin'?'badge-admin':'badge-customer'}">${role}</span>`;
+}
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function confirm2(msg, cb) {
+  document.getElementById('confirm-text').textContent = msg;
+  document.getElementById('confirm-yes').onclick = () => { closeModal('modal-confirm'); cb(); };
+  openModal('modal-confirm');
+}
+
+function toast(msg, type='success') {
+  const c = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<i class="fa-solid ${type==='error'?'fa-circle-exclamation':type==='info'?'fa-circle-info':'fa-circle-check'}" style="color:${type==='error'?'var(--danger)':type==='info'?'var(--accent)':'var(--success)'}"></i> ${msg}`;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function debounce(fn, delay) {
+  let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => el.addEventListener('click', e => { if(e.target===el) el.classList.remove('open'); }));
+
+// Enter key login
+document.addEventListener('keydown', e => { if(e.key==='Enter' && document.getElementById('login-screen').style.display!=='none') doLogin(); });
+
+// Sidebar toggle for small screens
+function toggleSidebar() {
+  const sb = document.querySelector('.sidebar');
+  if (!sb) return;
+  sb.classList.toggle('open');
+}
+
+// Collapse/expand sidebar for wider screens
+function toggleCollapseSidebar() {
+  const sb = document.querySelector('.sidebar');
+  if (!sb) return;
+  sb.classList.toggle('collapsed');
+  const collapsed = sb.classList.contains('collapsed');
+  localStorage.setItem('admin_sidebar_collapsed', collapsed? '1' : '0');
+  const icon = document.getElementById('collapse-icon');
+  if (icon) icon.style.transform = collapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+// Apply saved collapsed state on load
+document.addEventListener('DOMContentLoaded', () => {
+  const val = localStorage.getItem('admin_sidebar_collapsed');
+  if (val === '1') {
+    const sb = document.querySelector('.sidebar');
+    if (sb) sb.classList.add('collapsed');
+    const icon = document.getElementById('collapse-icon');
+    if (icon) icon.style.transform = 'rotate(180deg)';
+  }
+  // Ensure login inputs are empty on first load so users must type credentials
+  try {
+    const le = document.getElementById('l-email');
+    const lp = document.getElementById('l-pass');
+    if (le) { le.value = ''; le.autocomplete = 'off'; }
+    if (lp) { lp.value = ''; lp.autocomplete = 'off'; }
+  } catch(e) { /* ignore */ }
+});
+
+// Close the mobile sidebar when clicking outside
+document.addEventListener('click', (e) => {
+  const sb = document.querySelector('.sidebar');
+  const btn = document.querySelector('.menu-toggle');
+  if (!sb || !sb.classList.contains('open')) return;
+  if (e.target.closest('.sidebar') || e.target.closest('.menu-toggle')) return;
+  sb.classList.remove('open');
+});
+</script>
+</body>
+</html>

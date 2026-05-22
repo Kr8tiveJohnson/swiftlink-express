@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwiftLink Waybill</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #0b2c4d 0%, #1a4d7a 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 30px;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.loading-container.hidden {
+    display: none;
+}
+
+.company-logo-large {
+    width: 120px;
+    height: 120px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: pulse-scale 2s infinite;
+}
+
+@keyframes pulse-scale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.company-logo-large svg {
+    width: 80px;
+    height: 80px;
+}
+
+.loading-company-info {
+    text-align: center;
+    color: #fff;
+}
+
+.loading-company-info h2 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+}
+
+.loading-company-info p {
+    font-size: 14px;
+    opacity: 0.9;
+    margin: 4px 0;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.waybill {
+    max-width: 960px;
+    margin: auto;
+    background: #fff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transition: opacity 0.5s ease 0.2s;
+}
+
+.waybill.loaded {
+    opacity: 1;
+}
+
+.company-header {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    margin-bottom: 35px;
+    padding-bottom: 25px;
+    border-bottom: 3px solid #0b2c4d;
+}
+
+.company-logo {
+    width: 90px;
+    height: 90px;
+    background: linear-gradient(135deg, #0b2c4d 0%, #1a4d7a 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(11, 44, 77, 0.2);
+}
+
+.company-logo svg {
+    width: 60px;
+    height: 60px;
+}
+
+.company-info h1 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #0b2c4d;
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
+}
+
+.company-info p {
+    font-size: 13px;
+    color: #666;
+    margin: 3px 0;
+    line-height: 1.5;
+}
+
+.company-info .tagline {
+    font-size: 12px;
+    color: #1a4d7a;
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+.header-right {
+    text-align: right;
+    margin-left: auto;
+}
+
+.waybill-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0b2c4d;
+    margin-bottom: 10px;
+}
+
+.metadata {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.metadata-item {
+    font-size: 12px;
+    color: #555;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.metadata-item strong {
+    color: #0b2c4d;
+    font-weight: 600;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    margin-bottom: 30px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+th, td {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 14px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background: linear-gradient(135deg, #f8fafb 0%, #f0f3f7 100%);
+    font-weight: 600;
+    color: #0b2c4d;
+    width: 220px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+td {
+    color: #333;
+    background: #fafbfc;
+}
+
+tbody tr:hover td {
+    background: #f0f3f7;
+}
+
+.tracking-barcode-section {
+    text-align: center;
+    margin: 35px 0;
+    padding: 25px;
+    background: linear-gradient(135deg, #f8fafb 0%, #f0f3f7 100%);
+    border-radius: 8px;
+    border: 2px solid #0b2c4d;
+}
+
+.tracking-barcode-label {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.tracking-box {
+    font-family: 'Courier New', monospace;
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #0b2c4d;
+    word-break: break-all;
+    padding: 15px;
+    background: #fff;
+    border-radius: 6px;
+    border: 1px dashed #0b2c4d;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 30px;
+    justify-content: center;
+}
+
+button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #0b2c4d 0%, #1a4d7a 100%);
+    color: #fff;
+}
+
+.btn-print:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(11, 44, 77, 0.3);
+}
+
+#error-message {
+    background: #fee;
+    color: #c33;
+    padding: 16px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    border-left: 4px solid #c33;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pending { background: #fef3c7; color: #92400e; }
+.status-processing { background: #bfdbfe; color: #1e40af; }
+.status-in-transit { background: #dbeafe; color: #0c4a6e; }
+.status-on-hold { background: #fee2e2; color: #7f1d1d; }
+.status-delivered { background: #dcfce7; color: #15803d; }
+.status-cancelled { background: #e5e7eb; color: #374151; }
+
+.timeline-section {
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 2px solid #e0e0e0;
+}
+
+.timeline-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0b2c4d;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.timeline-items {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.timeline-item {
+    display: flex;
+    gap: 16px;
+    padding: 12px;
+    background: #f8fafb;
+    border-radius: 6px;
+    border-left: 3px solid #0b2c4d;
+}
+
+.timeline-dot {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #0b2c4d 0%, #1a4d7a 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.timeline-content {
+    flex: 1;
+}
+
+.timeline-time {
+    font-size: 11px;
+    color: #666;
+    font-family: 'Courier New', monospace;
+}
+
+.timeline-activity {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0b2c4d;
+    margin: 4px 0;
+}
+
+.timeline-location {
+    font-size: 12px;
+    color: #666;
+}
+
+.qr-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8fafb;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+}
+
+.qr-label {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+#qr-code {
+    display: inline-block;
+    padding: 10px;
+    background: #fff;
+    border-radius: 4px;
+}
+
+@media print {
+    body {
+        background: #fff;
+        padding: 0;
+    }
+    .waybill {
+        box-shadow: none;
+        border-radius: 0;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    button, .action-buttons, .loading-container {
+        display: none !important;
+    }
+    .waybill {
+        page-break-after: avoid;
+    }
+}
+</style>
+<script src="/vendor/qrcode/qrcode.min.js"></script>
+
+<div class="loading-container" id="loading-container">
+    <div class="company-logo-large">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="10" width="80" height="80" rx="4" fill="#0b2c4d"/>
+            <path d="M30 40 L50 25 L70 40 V70 H30 Z" stroke="#fff" stroke-width="2.5" fill="none"/>
+            <circle cx="50" cy="50" r="5" fill="#fff"/>
+            <rect x="35" y="55" width="30" height="10" rx="2" fill="#1a4d7a"/>
+        </svg>
+    </div>
+    <div class="loading-company-info">
+        <h2>SwiftLink Express</h2>
+        <p>Loading your waybill...</p>
+        <p style="font-size: 12px; margin-top: 8px; opacity: 0.8;">larrye1220@gmail.com | 1520 2311137</p>
+    </div>
+    <div class="spinner"></div>
+</div>
+
+<div class="waybill" id="waybill-content">
+    <div class="company-header">
+        <div class="company-logo">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" y="10" width="80" height="80" rx="4" fill="#fff" opacity="0.1"/>
+                <path d="M30 40 L50 25 L70 40 V70 H30 Z" stroke="#fff" stroke-width="2.5" fill="none"/>
+                <circle cx="50" cy="50" r="5" fill="#fff"/>
+                <rect x="35" y="55" width="30" height="10" rx="2" fill="#fff" opacity="0.7"/>
+            </svg>
+        </div>
+        <div class="company-info">
+            <h1>SwiftLink Express</h1>
+            <p>International Freight & Cargo Services</p>
+            <p>102 Logistics Blvd, Marina Complex, Lagos, Nigeria</p>
+            <p>Email: larrye1220@gmail.com | Phone: 1520 2311137</p>
+            <p class="tagline">Premium Logistics Solution</p>
+        </div>
+        <div class="header-right">
+            <div class="waybill-title">Transporty Waybill</div>
+            <div class="metadata">
+                <div class="metadata-item"><strong>Date:</strong> <span id="meta-timestamp"></span></div>
+                <div class="metadata-item"><strong>Page:</strong> 1 of 1</div>
+                <div class="metadata-item" style="flex-direction: column; align-items: flex-end;"><strong>Ref:</strong> <a id="meta-external" href="" target="_blank" rel="noreferrer" style="color: #1a4d7a; text-decoration: none; font-size: 11px; word-break: break-all;"></a></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="error-container"></div>
+
+    <div class="table-wrap">
+        <table>
+            <tbody>
+                <tr><th>Date Shipped</th><td id="date-shipped"></td></tr>
+                <tr><th>Tracking ID</th><td id="tracking-id"></td></tr>
+                <tr><th>Shipper</th><td id="shipper-full"></td></tr>
+                <tr><th>Consignee</th><td id="consignee-full"></td></tr>
+                <tr><th>Destination</th><td id="destination"></td></tr>
+                <tr><th>Origin</th><td id="origin"></td></tr>
+                <tr><th>Carrier</th><td id="carrier"></td></tr>
+                <tr><th>Carrier Reference Number</th><td id="carrier-ref"></td></tr>
+                <tr><th>Service Type</th><td id="service"></td></tr>
+                <tr><th>Packages</th><td id="packages"></td></tr>
+                <tr><th>Product</th><td id="product"></td></tr>
+                <tr><th>Weight</th><td id="weight"></td></tr>
+                <tr><th>Total Freight</th><td id="total-freight"></td></tr>
+                <tr><th>Quantity</th><td id="quantity"></td></tr>
+                <tr><th>Payment Mode</th><td id="payment-mode"></td></tr>
+                <tr><th>Mode</th><td id="mode"></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="tracking-barcode-section">
+        <div class="tracking-barcode-label">Tracking Number</div>
+        <div class="tracking-box" id="tracking-barcode"></div>
+        <div style="margin-top: 16px; font-size: 12px; color: #666;">
+            <strong>Status:</strong> <span id="shipment-status" class="status-badge"></span>
+        </div>
+    </div>
+
+    <!-- Timeline Section -->
+    <div class="timeline-section" id="timeline-section" style="display: none;">
+        <div class="timeline-title">📍 Tracking History</div>
+        <div class="timeline-items" id="timeline-items"></div>
+    </div>
+
+    <!-- QR Code Section -->
+    <div class="qr-section" id="qr-section" style="display: none;">
+        <div class="qr-label">Scan for Online Tracking</div>
+        <div id="qr-code"></div>
+    </div>
+
+    <div class="action-buttons">
+        <button class="btn-print" onclick="window.print()">🖨️ Print Waybill</button>
+    </div>
+</div>
+<script>
+const params = new URLSearchParams(window.location.search);
+const trackingId = params.get('id');
+const loadingContainer = document.getElementById('loading-container');
+const waybillContent = document.getElementById('waybill-content');
+const errorContainer = document.getElementById('error-container');
+
+// Set timestamp
+document.getElementById('meta-timestamp').innerText = new Date().toLocaleString();
+const externalLink = document.getElementById('meta-external');
+if (externalLink) {
+    const url = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(trackingId || '')}`;
+    externalLink.href = url;
+    externalLink.innerText = url;
+}
+
+function formatLocation(location) {
+    if (!location) return 'No data';
+    if (typeof location === 'string') return location;
+    const parts = [];
+    if (location.address) parts.push(location.address);
+    if (location.city) parts.push(location.city);
+    if (location.country) parts.push(location.country);
+    return parts.filter(Boolean).join(', ') || 'No data';
+}
+
+function formatText(value) {
+    if (value === undefined || value === null || value === '') return 'No data';
+    return String(value);
+}
+
+function formatCarrier(s) {
+    return s.carrier || 'SwiftLink Express';
+}
+
+function formatCarrierReference(s) {
+    return s.carrierReference || s.trackingNumber || 'No data';
+}
+
+async function loadShipment() {
+    if (!trackingId) {
+        loadingContainer.classList.add('hidden');
+        waybillContent.classList.add('loaded');
+        errorContainer.innerHTML = '<div id="error-message">No tracking ID provided in the URL.</div>';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/tracking/number/${encodeURIComponent(trackingId)}`);
+        if (!res.ok) {
+            throw new Error(`${res.status} ${res.statusText}`);
+        }
+
+        const json = await res.json();
+        const s = json.data.shipment || {};
+        const history = json.data.history || [];
+        
+        const originText = formatLocation(s.origin);
+        const destinationText = formatLocation(s.destination);
+        const shipperFull = `${s.shipper?.name || 'Sender'} (${formatLocation(s.shipper)})`;
+        const consigneeFull = `${s.receiver?.name || 'Receiver'} (${formatLocation(s.receiver)})`;
+        const weightText = s.cargo?.weight ? `${s.cargo.weight.value} ${s.cargo.weight.unit}` : formatText(s.weight);
+        const serviceText = s.service?.type ? `${s.service.type}${s.service.mode ? ' / ' + s.service.mode : ''}` : 'No data';
+        const productText = formatText(s.cargo?.description || s.description);
+        const quantityText = formatText(s.cargo?.quantity || s.quantity);
+
+        document.getElementById('date-shipped').innerText = formatText(s.shipDate || s.estimatedDeliveryDate);
+        document.getElementById('tracking-id').innerText = s.trackingNumber || trackingId;
+        document.getElementById('shipper-full').innerText = shipperFull;
+        document.getElementById('consignee-full').innerText = consigneeFull;
+        document.getElementById('destination').innerText = destinationText;
+        document.getElementById('origin').innerText = originText;
+        document.getElementById('carrier').innerText = formatCarrier(s);
+        document.getElementById('carrier-ref').innerText = formatCarrierReference(s);
+        document.getElementById('service').innerText = serviceText;
+        document.getElementById('packages').innerText = 'No data';
+        document.getElementById('product').innerText = productText;
+        document.getElementById('weight').innerText = weightText;
+        document.getElementById('total-freight').innerText = 'No data';
+        document.getElementById('quantity').innerText = quantityText;
+        document.getElementById('payment-mode').innerText = 'No data';
+        document.getElementById('mode').innerText = 'No data';
+        document.getElementById('tracking-barcode').innerText = s.trackingNumber || trackingId;
+
+        // Display status badge
+        const statusEl = document.getElementById('shipment-status');
+        const status = s.status || 'pending';
+        statusEl.className = `status-badge status-${status.toLowerCase()}`;
+        statusEl.innerText = status.replace('-', ' ').toUpperCase();
+
+        // Load tracking history timeline
+        if (history && history.length > 0) {
+            const timelineSection = document.getElementById('timeline-section');
+            const timelineItems = document.getElementById('timeline-items');
+            timelineItems.innerHTML = '';
+            
+            history.slice(0, 10).forEach((item, idx) => {
+                const timestamp = new Date(item.timestamp || item.createdAt);
+                const timeStr = timestamp.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                const div = document.createElement('div');
+                div.className = 'timeline-item';
+                div.innerHTML = `
+                    <div class="timeline-dot">${idx + 1}</div>
+                    <div class="timeline-content">
+                        <div class="timeline-time">${timeStr}</div>
+                        <div class="timeline-activity">${item.activity || 'Status Update'}</div>
+                        <div class="timeline-location">${formatLocation(item.location) || 'Location not available'}</div>
+                        ${item.details ? `<div style="font-size: 11px; color: #666; margin-top: 4px;">${item.details}</div>` : ''}
+                    </div>
+                `;
+                timelineItems.appendChild(div);
+            });
+            
+            timelineSection.style.display = 'block';
+        }
+
+        // Generate QR code
+        const qrSection = document.getElementById('qr-section');
+        const qrContainer = document.getElementById('qr-code');
+        qrContainer.innerHTML = '';
+        
+        const qrUrl = `${window.location.origin}?id=${encodeURIComponent(s.trackingNumber || trackingId)}`;
+        new QRCode(qrContainer, {
+            text: qrUrl,
+            width: 150,
+            height: 150,
+            colorDark: '#0b2c4d',
+            colorLight: '#ffffff'
+        });
+        qrSection.style.display = 'block';
+
+        // Hide loading, show waybill
+        loadingContainer.classList.add('hidden');
+        waybillContent.classList.add('loaded');
+    } catch (err) {
+        console.error(err);
+        loadingContainer.classList.add('hidden');
+        waybillContent.classList.add('loaded');
+        errorContainer.innerHTML = `<div id="error-message">⚠️ Unable to load shipment: ${err.message}. Please check the tracking ID and try again.</div>`;
+    }
+}
+
+// Start loading
+loadShipment();
+</script>
+</body>
+</html>

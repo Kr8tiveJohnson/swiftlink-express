@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwiftLink Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+    theme: { extend: { colors: {
+        brandDark: '#0B2C4D', brandAccent: '#00C2FF', brandSuccess: '#22C55E'
+    }}}
+}
+</script>
+<link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
+<style>
+  body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+  .sidebar-link { display:flex; align-items:center; gap:.75rem; padding:.65rem 1rem; border-radius:.5rem;
+    color:#94a3b8; transition:all .2s; font-size:.85rem; font-weight:500; cursor:pointer; }
+  .sidebar-link:hover { background:rgba(0,194,255,.08); color:#00C2FF; }
+  .sidebar-link.active { background:rgba(0,194,255,.15); color:#00C2FF; }
+  .card { background:#fff; border-radius:1rem; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+  .btn-primary { background:#0B2C4D; color:#fff; padding:.5rem 1.2rem; border-radius:.5rem;
+    font-size:.82rem; font-weight:600; transition:.2s; cursor:pointer; }
+  .btn-primary:hover { background:#113a63; }
+  .btn-accent { background:#00C2FF; color:#0B2C4D; padding:.5rem 1.2rem; border-radius:.5rem;
+    font-size:.82rem; font-weight:700; transition:.2s; cursor:pointer; }
+  .btn-accent:hover { background:#00aee6; }
+  .btn-danger { background:#ef4444; color:#fff; padding:.4rem 1rem; border-radius:.5rem;
+    font-size:.8rem; font-weight:600; transition:.2s; cursor:pointer; }
+  .btn-danger:hover { background:#dc2626; }
+  .btn-sm { padding:.3rem .75rem; font-size:.75rem; }
+  input, select, textarea { width:100%; border:1px solid #e2e8f0; border-radius:.5rem;
+    padding:.5rem .75rem; font-size:.83rem; color:#1e293b; outline:none; transition:.2s; }
+  input:focus, select:focus, textarea:focus { border-color:#00C2FF; box-shadow:0 0 0 3px rgba(0,194,255,.12); }
+  .table-row:hover { background:#f8fafc; }
+  .badge { display:inline-flex; align-items:center; padding:.2rem .6rem; border-radius:9999px;
+    font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+  .badge-green  { background:#dcfce7; color:#166534; }
+  .badge-red    { background:#fee2e2; color:#991b1b; }
+  .badge-yellow { background:#fef9c3; color:#854d0e; }
+  .badge-blue   { background:#dbeafe; color:#1e40af; }
+  .badge-gray   { background:#f1f5f9; color:#475569; }
+  .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:999;
+    display:flex; align-items:center; justify-content:center; padding:1rem; }
+  .modal-box { background:#fff; border-radius:1rem; width:100%; max-width:560px;
+    max-height:90vh; overflow-y:auto; padding:1.5rem; box-shadow:0 20px 60px rgba(0,0,0,.2); }
+  .page { display:none; } .page.active { display:block; }
+  #toast { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
+    background:#0B2C4D; color:#fff; padding:.75rem 1.2rem; border-radius:.75rem;
+    font-size:.82rem; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.2);
+    transform:translateY(100px); transition:transform .3s ease; }
+  #toast.show { transform:translateY(0); }
+  #toast.success { border-left:4px solid #22C55E; }
+  #toast.error { border-left:4px solid #ef4444; }
+  @media(max-width:768px) { #sidebar { transform:translateX(-100%); transition:.3s; position:fixed; z-index:100; height:100vh; }
+    #sidebar.open { transform:translateX(0); } }
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Layout -->
+<div class="flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="w-60 bg-brandDark flex-shrink-0 flex flex-col">
+    <div class="p-5 border-b border-slate-700/50">
+      <div class="flex items-center gap-2 text-white">
+        <i class="fa-solid fa-layer-group text-brandAccent text-xl"></i>
+        <div>
+          <div class="font-bold text-sm tracking-tight">SwiftLink <span class="text-brandAccent">Admin</span></div>
+          <div class="text-[10px] text-slate-400 font-medium mt-0.5">Control Panel</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 py-2">Main</div>
+      <div class="sidebar-link active" onclick="goto('dashboard')"><i class="fa fa-chart-pie w-4 text-center"></i>Dashboard</div>
+      <div class="sidebar-link" onclick="goto('shipments')"><i class="fa fa-boxes-stacked w-4 text-center"></i>Shipments</div>
+      <div class="sidebar-link" onclick="goto('users')"><i class="fa fa-users w-4 text-center"></i>Users</div>
+
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 py-2 mt-2">System</div>
+      <div class="sidebar-link" onclick="goto('sessions')"><i class="fa fa-shield-halved w-4 text-center"></i>Sessions</div>
+      <div class="sidebar-link" onclick="goto('contacts')"><i class="fa fa-envelope w-4 text-center"></i>Contact Messages</div>
+      <div class="sidebar-link" onclick="goto('settings')"><i class="fa fa-sliders w-4 text-center"></i>Site Settings</div>
+    </nav>
+
+    <div class="p-3 border-t border-slate-700/50">
+      <div id="admin-user-badge" class="flex items-center gap-2 px-2 py-2 text-slate-400 text-xs font-medium mb-2"></div>
+      <button onclick="doLogout()" class="sidebar-link w-full text-red-400 hover:text-red-300 hover:bg-red-950/20">
+        <i class="fa fa-right-from-bracket w-4 text-center"></i>Logout
+      </button>
+      <a href="/" class="sidebar-link text-slate-500 hover:text-brandAccent">
+        <i class="fa fa-arrow-left w-4 text-center"></i>Back to Site
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+    <!-- Top bar -->
+    <header class="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <button class="md:hidden text-slate-500" onclick="document.getElementById('sidebar').classList.toggle('open')">
+          <i class="fa fa-bars text-lg"></i>
+        </button>
+        <div>
+          <h1 id="page-title" class="text-base font-bold text-brandDark">Dashboard</h1>
+          <p class="text-xs text-slate-400 font-medium" id="page-subtitle">Overview of your logistics operations</p>
+        </div>
+      </div>
+      <div class="text-xs text-slate-400 font-medium hidden sm:block" id="clock"></div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="flex-1 overflow-y-auto p-6">
+
+      <!-- Login Screen (shown if not authenticated) -->
+      <div id="login-screen" class="hidden min-h-[80vh] flex items-center justify-center">
+        <div class="card p-8 w-full max-w-sm">
+          <div class="text-center mb-6">
+            <i class="fa-solid fa-layer-group text-brandAccent text-3xl mb-2"></i>
+            <h2 class="text-lg font-bold text-brandDark">Admin Login</h2>
+            <p class="text-xs text-slate-400 mt-1">Sign in to access the dashboard</p>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="text-xs font-semibold text-slate-500 block mb-1">Email</label>
+              <input id="login-email" type="email" placeholder="admin@swiftlink.com">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-500 block mb-1">Password</label>
+              <input id="login-pass" type="password" placeholder="••••••••">
+            </div>
+            <button onclick="doLogin()" class="btn-primary w-full text-center mt-2">Sign In</button>
+            <p id="login-err" class="text-red-500 text-xs text-center hidden"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard -->
+      <div id="page-dashboard" class="page active">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="card p-5"><div class="text-xs text-slate-400 font-semibold mb-1">Total Shipments</div><div class="text-2xl font-bold text-brandDark" id="stat-total">—</div></div>
+          <div class="card p-5"><div class="text-xs text-slate-400 font-semibold mb-1">This Week</div><div class="text-2xl font-bold text-brandAccent" id="stat-week">—</div></div>
+          <div class="card p-5"><div class="text-xs text-slate-400 font-semibold mb-1">Total Users</div><div class="text-2xl font-bold text-brandDark" id="stat-users">—</div></div>
+          <div class="card p-5"><div class="text-xs text-slate-400 font-semibold mb-1">Contact Messages</div><div class="text-2xl font-bold text-brandDark" id="stat-contacts">—</div></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="card p-5">
+            <h3 class="text-sm font-bold text-brandDark mb-3">Shipments by Status</h3>
+            <div id="stat-by-status" class="space-y-2"></div>
+          </div>
+          <div class="card p-5">
+            <h3 class="text-sm font-bold text-brandDark mb-3">Latest Shipments</h3>
+            <div id="stat-latest" class="space-y-2 text-xs"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shipments -->
+      <div id="page-shipments" class="page">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <input id="ship-search" placeholder="Search tracking no, receiver..." class="max-w-xs" oninput="debounce(loadShipments,400)()">
+            <select id="ship-status-filter" class="max-w-[140px]" onchange="loadShipments()">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="transit">In Transit</option>
+              <option value="on-hold">On Hold</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <button class="btn-accent" onclick="openShipmentModal()"><i class="fa fa-plus mr-1"></i>New Shipment</button>
+        </div>
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead><tr class="bg-slate-50 border-b border-slate-100">
+                <th class="p-3 text-left text-slate-500 font-semibold">Tracking No.</th>
+                <th class="p-3 text-left text-slate-500 font-semibold">Receiver</th>
+                <th class="p-3 text-left text-slate-500 font-semibold">Route</th>
+                <th class="p-3 text-left text-slate-500 font-semibold">Status</th>
+                <th class="p-3 text-left text-slate-500 font-semibold">Ship Date</th>
+                <th class="p-3 text-left text-slate-500 font-semibold">Actions</th>
+              </tr></thead>
+              <tbody id="shipments-tbody"></tbody>
+            </table>
+          </div>
+          <div id="shipments-pagination" class="p-4 flex justify-center gap-2"></div>
+        </div>
+      </div>
+
+      <!-- Tracking History Modal is inside shipment modal -->
+
+      <!-- Users -->
+      <div id="page-users" class="page">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div class="flex items-center gap-2 flex-1">
+            <input id="user-search" placeholder="Search name or email..." class="max-w-xs" oninput="debounce(loadUsers,400)()">
+            <select id="user-role-filter" class="max-w-[120px]" onchange="loadUsers()">
+              <option value="">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="user">User</option>
+            </select>
+          </div>
+          <button class="btn-accent" onclick="openUserModal()"><i class="fa fa-plus mr-1"></i>New User</button>
+        </div>
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead><tr class="bg-slate-50 border-b border-slate-100">
+                <th class="p-3 text-left text-slate-500 font-semibold">Name</th>
+                <th class="p-3 text-left text-slate-500 font-semibold">Email</th>
+                <th class="p-3 text-left text-slate-500 font-semibold">Role</th>
+                <th class="p-3 text-left text-slate-500 font-semibold">Joined</th>
+                <th class="p-3 text-left text-slate-500 font-semibold">Actions</th>
+              </tr></thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+          <div id="users-pagination" class="p-4 flex justify-center gap-2"></div>
+        </div>
+      </div>
+
+      <!-- Sessions -->
+      <div id="page-sessions" class="page">
+        <div class="flex items-center gap-2 mb-5 flex-wrap">
+          <input id="admin-search" placeholder="Search user..." class="max-w-xs" oninput="debounce(loadSessions,400)()">
+          <select id="admin-filter-role" class="max-w-[120px]" onchange="loadSessions()">
+            <option value="">All Roles</option><option value="admin">Admin</option><option value="user">User</option>
+          </select>
+          <button class="btn-primary btn-sm" onclick="exportSessions()"><i class="fa fa-download mr-1"></i>Export CSV</button>
+        </div>
+        <div id="admin-sessions-list" class="space-y-3"></div>
+      </div>
+
+      <!-- Contact Messages -->
+      <div id="page-contacts" class="page">
+        <div id="contacts-list" class="space-y-3"></div>
+      </div>
+
+      <!-- Settings -->
+      <div id="page-settings" class="page">
+        <div class="card p-6 max-w-xl">
+          <h3 class="text-sm font-bold text-brandDark mb-4">Site Settings</h3>
+          <div class="space-y-4" id="settings-form">
+            <div><label class="text-xs font-semibold text-slate-500 block mb-1">Site Name</label><input id="cfg-siteName"></div>
+            <div><label class="text-xs font-semibold text-slate-500 block mb-1">Tagline</label><input id="cfg-tagline"></div>
+            <div><label class="text-xs font-semibold text-slate-500 block mb-1">Contact Email</label><input id="cfg-email" type="email"></div>
+            <div><label class="text-xs font-semibold text-slate-500 block mb-1">Phone</label><input id="cfg-phone"></div>
+            <div><label class="text-xs font-semibold text-slate-500 block mb-1">Office Address</label><input id="cfg-address"></div>
+            <div><label class="text-xs font-semibold text-slate-500 block mb-1">Hero Title</label><input id="cfg-heroTitle"></div>
+            <div><label class="text-xs font-semibold text-slate-500 block mb-1">Hero Description</label><textarea id="cfg-heroDesc" rows="2"></textarea></div>
+            <div><label class="text-xs font-semibold text-slate-500 block mb-1">WhatsApp Number (digits only)</label><input id="cfg-whatsapp"></div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="cfg-maintenance" class="w-auto">
+              <label for="cfg-maintenance" class="text-xs font-semibold text-slate-500">Maintenance Mode</label>
+            </div>
+            <button onclick="saveSettings()" class="btn-accent">Save Settings</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ── Shipment Modal ────────────────────────────────── -->
+<div id="ship-modal" class="modal-bg hidden">
+  <div class="modal-box">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-bold text-brandDark" id="ship-modal-title">New Shipment</h2>
+      <button onclick="closeModal('ship-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa fa-xmark text-lg"></i></button>
+    </div>
+    <div class="space-y-3 text-xs">
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="font-semibold text-slate-500 block mb-1">Tracking Number *</label><input id="sm-tn" placeholder="e.g. SL-001-XYZ"></div>
+        <div><label class="font-semibold text-slate-500 block mb-1">Status</label>
+          <select id="sm-status"><option value="pending">Pending</option><option value="transit">In Transit</option><option value="on-hold">On Hold</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option></select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="font-semibold text-slate-500 block mb-1">Ship Date</label><input id="sm-shipDate" type="date"></div>
+        <div><label class="font-semibold text-slate-500 block mb-1">Est. Delivery</label><input id="sm-estDate" type="date"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="font-semibold text-slate-500 block mb-1">Origin Country</label><input id="sm-originCountry" placeholder="UK"></div>
+        <div><label class="font-semibold text-slate-500 block mb-1">Destination Address</label><input id="sm-destAddr" placeholder="123 St, City, Country"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="font-semibold text-slate-500 block mb-1">Shipper Name</label><input id="sm-shipperName"></div>
+        <div><label class="font-semibold text-slate-500 block mb-1">Shipper Address</label><input id="sm-shipperAddr"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="font-semibold text-slate-500 block mb-1">Receiver Name</label><input id="sm-receiverName"></div>
+        <div><label class="font-semibold text-slate-500 block mb-1">Receiver Address</label><input id="sm-receiverAddr"></div>
+      </div>
+      <div><label class="font-semibold text-slate-500 block mb-1">Cargo Description</label><input id="sm-desc" placeholder="e.g. ELECTRONICS - 5 UNITS LAPTOP"></div>
+      <div class="grid grid-cols-3 gap-3">
+        <div><label class="font-semibold text-slate-500 block mb-1">Weight (kg)</label><input id="sm-weight" type="number" step="0.01"></div>
+        <div><label class="font-semibold text-slate-500 block mb-1">Quantity</label><input id="sm-qty" placeholder="5 Units"></div>
+        <div><label class="font-semibold text-slate-500 block mb-1">Service Type</label><input id="sm-service" placeholder="Air Freight"></div>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="saveShipment()" class="btn-primary flex-1">Save Shipment</button>
+      <button onclick="closeModal('ship-modal')" class="btn-sm flex-1 text-center py-2 rounded-lg border border-slate-200 text-slate-500 text-xs font-semibold">Cancel</button>
+    </div>
+    <!-- Tracking history section (edit mode only) -->
+    <div id="ship-history-section" class="hidden mt-6 border-t border-slate-100 pt-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-bold text-brandDark">Tracking History</h3>
+        <button onclick="showAddHistoryForm()" class="btn-accent btn-sm"><i class="fa fa-plus mr-1"></i>Add Entry</button>
+      </div>
+      <div id="ship-history-add" class="hidden mb-3 p-3 bg-slate-50 rounded-lg space-y-2 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <div><label class="font-semibold text-slate-500 block mb-1">Activity *</label><input id="h-activity" placeholder="e.g. HOLD FOR CUSTOMS FEES"></div>
+          <div><label class="font-semibold text-slate-500 block mb-1">Location</label><input id="h-location" placeholder="NIGERIA"></div>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div><label class="font-semibold text-slate-500 block mb-1">Details</label><input id="h-details" placeholder="ON HOLD"></div>
+          <div><label class="font-semibold text-slate-500 block mb-1">Date/Time</label><input id="h-ts" type="datetime-local"></div>
+          <div class="flex items-end pb-1">
+            <label class="flex items-center gap-1 text-slate-500 font-semibold"><input type="checkbox" id="h-alert" class="w-auto"> Alert</label>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <select id="h-updateStatus" class="flex-1">
+            <option value="">Don't change status</option>
+            <option value="pending">→ Pending</option>
+            <option value="transit">→ In Transit</option>
+            <option value="on-hold">→ On Hold</option>
+            <option value="delivered">→ Delivered</option>
+          </select>
+          <button onclick="submitHistoryEntry()" class="btn-primary btn-sm">Add</button>
+          <button onclick="document.getElementById('ship-history-add').classList.add('hidden')" class="btn-sm py-1 px-3 rounded-lg border text-slate-500 text-xs">Cancel</button>
+        </div>
+      </div>
+      <div id="ship-history-list" class="space-y-2 text-xs max-h-64 overflow-y-auto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── User Modal ────────────────────────────────────── -->
+<div id="user-modal" class="modal-bg hidden">
+  <div class="modal-box">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-bold text-brandDark" id="user-modal-title">New User</h2>
+      <button onclick="closeModal('user-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa fa-xmark text-lg"></i></button>
+    </div>
+    <div class="space-y-3 text-xs">
+      <div><label class="font-semibold text-slate-500 block mb-1">Full Name *</label><input id="um-name"></div>
+      <div><label class="font-semibold text-slate-500 block mb-1">Email *</label><input id="um-email" type="email"></div>
+      <div><label class="font-semibold text-slate-500 block mb-1">Password <span id="um-pass-hint" class="text-slate-400">(leave blank to keep)</span></label><input id="um-password" type="password" placeholder="min 8 chars"></div>
+      <div><label class="font-semibold text-slate-500 block mb-1">Role</label>
+        <select id="um-role"><option value="user">User</option><option value="admin">Admin</option></select>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="saveUser()" class="btn-primary flex-1">Save User</button>
+      <button onclick="closeModal('user-modal')" class="btn-sm flex-1 text-center py-2 rounded-lg border text-slate-500 text-xs font-semibold">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Confirm Modal ──────────────────────────────────── -->
+<div id="confirm-modal" class="modal-bg hidden">
+  <div class="modal-box max-w-sm">
+    <p id="confirm-body" class="text-sm text-brandDark font-semibold mb-5"></p>
+    <div class="flex gap-3">
+      <button id="confirm-yes" class="btn-danger flex-1">Yes, confirm</button>
+      <button onclick="closeModal('confirm-modal')" class="flex-1 py-2 rounded-lg border text-slate-500 text-xs font-semibold">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ─────────────────────────────────────────────────────────────────────
+const API = window.location.origin;
+let token = localStorage.getItem('sl_token');
+let currentUser = JSON.parse(localStorage.getItem('sl_user') || 'null');
+let editingShipmentId = null;
+let editingUserId = null;
+let currentShipPage = 1;
+let currentUserPage = 1;
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function api(path, opts={}) {
+  const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts.headers||{}) };
+  return fetch(API + path, { ...opts, headers });
+}
+
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `show ${type}`;
+  setTimeout(() => t.className = '', 3200);
+}
+
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+function confirm(msg, cb) {
+  document.getElementById('confirm-body').textContent = msg;
+  document.getElementById('confirm-modal').classList.remove('hidden');
+  document.getElementById('confirm-yes').onclick = () => { closeModal('confirm-modal'); cb(); };
+}
+
+function statusBadge(s) {
+  const map = { 'transit':'badge-blue','delivered':'badge-green','on-hold':'badge-red','pending':'badge-yellow','cancelled':'badge-gray' };
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString() : '—'; }
+
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; };
+
+function goto(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.querySelector(`[onclick="goto('${page}')"]`).classList.add('active');
+  const titles = { dashboard:'Dashboard', shipments:'Shipments', users:'Users', sessions:'Active Sessions', contacts:'Contact Messages', settings:'Site Settings' };
+  const subs = { dashboard:'Overview of your logistics operations', shipments:'Manage all shipment records', users:'Manage user accounts', sessions:'View & revoke user sessions', contacts:'Customer enquiries received', settings:'Configure website content' };
+  document.getElementById('page-title').textContent = titles[page] || page;
+  document.getElementById('page-subtitle').textContent = subs[page] || '';
+  if (page === 'dashboard') loadStats();
+  if (page === 'shipments') loadShipments();
+  if (page === 'users') loadUsers();
+  if (page === 'sessions') loadSessions();
+  if (page === 'contacts') loadContacts();
+  if (page === 'settings') loadSettings();
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+  err.classList.add('hidden');
+  try {
+    const r = await fetch(`${API}/api/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password: pass }) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error?.message || 'Login failed');
+    if (j.data?.user?.role !== 'admin') throw new Error('Admin access required');
+    token = j.data.token;
+    currentUser = j.data.user;
+    localStorage.setItem('sl_token', token);
+    localStorage.setItem('sl_user', JSON.stringify(currentUser));
+    bootDashboard();
+  } catch(e) { err.textContent = e.message; err.classList.remove('hidden'); }
+}
+
+function doLogout() {
+  api('/api/auth/logout', { method:'POST' }).catch(()=>{});
+  localStorage.removeItem('sl_token');
+  localStorage.removeItem('sl_user');
+  token = null; currentUser = null;
+  location.reload();
+}
+
+function bootDashboard() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('page-dashboard').classList.add('active');
+  document.getElementById('admin-user-badge').innerHTML = `<i class="fa fa-user-shield text-brandAccent"></i> ${currentUser?.name || 'Admin'}`;
+  loadStats();
+}
+
+// ── Dashboard Stats ────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r = await api('/api/admin/stats');
+    const { data } = await r.json();
+    document.getElementById('stat-total').textContent = data.totalShipments;
+    document.getElementById('stat-week').textContent = data.recentShipments;
+    document.getElementById('stat-users').textContent = data.totalUsers;
+    document.getElementById('stat-contacts').textContent = data.totalContacts;
+
+    const statusEl = document.getElementById('stat-by-status');
+    statusEl.innerHTML = Object.entries(data.byStatus || {}).map(([k,v]) =>
+      `<div class="flex items-center justify-between py-1 border-b border-slate-50">
+        <span class="capitalize text-slate-500 text-xs font-medium">${k}</span>
+        <div class="flex items-center gap-2"><div class="h-1.5 bg-brandAccent/40 rounded-full" style="width:${Math.max(v*8,16)}px"></div><span class="font-bold text-brandDark text-xs">${v}</span></div>
+      </div>`
+    ).join('');
+
+    const latestEl = document.getElementById('stat-latest');
+    latestEl.innerHTML = (data.latestShipments || []).map(s =>
+      `<div class="flex items-center justify-between py-1.5 border-b border-slate-50">
+        <div><span class="font-mono font-bold text-brandDark">${s.trackingNumber}</span><span class="ml-2 text-slate-400">${s.receiver?.name || ''}</span></div>
+        ${statusBadge(s.status)}
+      </div>`
+    ).join('') || '<p class="text-slate-400 text-xs">No shipments yet</p>';
+  } catch(e) { toast('Failed to load stats', 'error'); }
+}
+
+// ── Shipments ──────────────────────────────────────────────────────────────────
+async function loadShipments(page=currentShipPage) {
+  currentShipPage = page;
+  const q = document.getElementById('ship-search')?.value || '';
+  const status = document.getElementById('ship-status-filter')?.value || '';
+  try {
+    const r = await api(`/api/tracking?q=${encodeURIComponent(q)}&status=${status}&page=${page}&limit=15`);
+    const j = await r.json();
+    const data = j.data || [];
+    const meta = j.meta || { total:0, page:1, limit:15 };
+    const tbody = document.getElementById('shipments-tbody');
+    tbody.innerHTML = data.length ? data.map(s => `
+      <tr class="table-row border-b border-slate-50">
+        <td class="p-3 font-mono font-bold text-brandDark">${s.trackingNumber}</td>
+        <td class="p-3 text-slate-600">${s.receiver?.name || '—'}</td>
+        <td class="p-3 text-slate-400">${s.origin?.country || '—'} → ${s.destination?.city || s.destination?.country || '—'}</td>
+        <td class="p-3">${statusBadge(s.status)}</td>
+        <td class="p-3 text-slate-400">${fmtDate(s.shipDate)}</td>
+        <td class="p-3 flex gap-2">
+          <button onclick="editShipment('${s.id}')" class="btn-primary btn-sm"><i class="fa fa-pen mr-1"></i>Edit</button>
+          <button onclick="confirm('Delete shipment ${s.trackingNumber}?', ()=>deleteShipment('${s.id}'))" class="btn-danger btn-sm"><i class="fa fa-trash"></i></button>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="6" class="p-8 text-center text-slate-400 text-xs">No shipments found</td></tr>`;
+
+    // Pagination
+    const pages = Math.ceil(meta.total / meta.limit);
+    const pager = document.getElementById('shipments-pagination');
+    pager.innerHTML = Array.from({length:pages},(_,i)=>i+1).map(p =>
+      `<button onclick="loadShipments(${p})" class="px-3 py-1 rounded text-xs font-semibold ${p===page?'bg-brandDark text-white':'bg-slate-100 text-slate-500 hover:bg-slate-200'}">${p}</button>`
+    ).join('');
+  } catch(e) { toast('Failed to load shipments', 'error'); }
+}
+
+function openShipmentModal(id=null) {
+  editingShipmentId = id;
+  document.getElementById('ship-modal-title').textContent = id ? 'Edit Shipment' : 'New Shipment';
+  document.getElementById('ship-history-section').classList.toggle('hidden', !id);
+  ['sm-tn','sm-status','sm-shipDate','sm-estDate','sm-originCountry','sm-destAddr','sm-shipperName','sm-shipperAddr','sm-receiverName','sm-receiverAddr','sm-desc','sm-weight','sm-qty','sm-service'].forEach(f => { const el = document.getElementById(f); if(el) el.value = ''; });
+  document.getElementById('ship-modal').classList.remove('hidden');
+}
+
+async function editShipment(id) {
+  openShipmentModal(id);
+  try {
+    const r = await api(`/api/tracking/${id}`);
+    const { data } = await r.json();
+    const s = data.shipment;
+    document.getElementById('sm-tn').value = s.trackingNumber || '';
+    document.getElementById('sm-status').value = s.status || 'pending';
+    document.getElementById('sm-shipDate').value = s.shipDate ? s.shipDate.slice(0,10) : '';
+    document.getElementById('sm-estDate').value = s.estimatedDeliveryDate ? s.estimatedDeliveryDate.slice(0,10) : '';
+    document.getElementById('sm-originCountry').value = s.origin?.country || '';
+    document.getElementById('sm-destAddr').value = s.destination?.address || '';
+    document.getElementById('sm-shipperName').value = s.shipper?.name || '';
+    document.getElementById('sm-shipperAddr').value = s.shipper?.address || '';
+    document.getElementById('sm-receiverName').value = s.receiver?.name || '';
+    document.getElementById('sm-receiverAddr').value = s.receiver?.address || '';
+    document.getElementById('sm-desc').value = s.cargo?.description || '';
+    document.getElementById('sm-weight').value = s.cargo?.weight?.value || '';
+    document.getElementById('sm-qty').value = s.cargo?.quantity || '';
+    document.getElementById('sm-service').value = s.service?.type || '';
+    renderHistoryList(data.history || [], id);
+  } catch(e) { toast('Failed to load shipment', 'error'); }
+}
+
+function renderHistoryList(history, shipmentId) {
+  const el = document.getElementById('ship-history-list');
+  el.innerHTML = history.length ? history.map(h => `
+    <div class="flex items-start justify-between p-2 rounded-lg ${h.alerts?.length ? 'bg-red-50 border border-red-100' : 'bg-slate-50'}">
+      <div>
+        <div class="font-semibold ${h.alerts?.length ? 'text-red-700' : 'text-brandDark'}">${h.activity}</div>
+        <div class="text-slate-400 mt-0.5">${h.location} · ${h.details} · ${fmtDate(h.timestamp)}</div>
+      </div>
+      <button onclick="deleteHistoryEntry('${shipmentId}','${h.id}')" class="text-red-400 hover:text-red-600 ml-3 mt-0.5"><i class="fa fa-trash text-xs"></i></button>
+    </div>`).join('') : '<p class="text-slate-400">No history yet</p>';
+}
+
+async function saveShipment() {
+  const tn = document.getElementById('sm-tn').value.trim();
+  if (!tn) return toast('Tracking number required', 'error');
+  const body = {
+    trackingNumber: tn,
+    status: document.getElementById('sm-status').value,
+    shipDate: document.getElementById('sm-shipDate').value || null,
+    estimatedDeliveryDate: document.getElementById('sm-estDate').value || null,
+    origin: { country: document.getElementById('sm-originCountry').value },
+    destination: { address: document.getElementById('sm-destAddr').value },
+    shipper: { name: document.getElementById('sm-shipperName').value, address: document.getElementById('sm-shipperAddr').value },
+    receiver: { name: document.getElementById('sm-receiverName').value, address: document.getElementById('sm-receiverAddr').value },
+    cargo: { description: document.getElementById('sm-desc').value, weight: { value: parseFloat(document.getElementById('sm-weight').value)||0, unit:'kg' }, quantity: document.getElementById('sm-qty').value },
+    service: { type: document.getElementById('sm-service').value, mode: '' }
+  };
+  try {
+    const r = editingShipmentId
+      ? await api(`/api/tracking/${editingShipmentId}`, { method:'PUT', body:JSON.stringify(body) })
+      : await api('/api/tracking', { method:'POST', body:JSON.stringify(body) });
+    if (!r.ok) { const j = await r.json(); throw new Error(j.error?.message); }
+    toast(editingShipmentId ? 'Shipment updated!' : 'Shipment created!');
+    if (!editingShipmentId) closeModal('ship-modal');
+    loadShipments();
+  } catch(e) { toast(e.message || 'Failed to save', 'error'); }
+}
+
+async function deleteShipment(id) {
+  await api(`/api/tracking/${id}`, { method:'DELETE' });
+  toast('Shipment deleted'); loadShipments();
+}
+
+function showAddHistoryForm() {
+  document.getElementById('ship-history-add').classList.remove('hidden');
+  document.getElementById('h-ts').value = new Date().toISOString().slice(0,16);
+}
+
+async function submitHistoryEntry() {
+  const activity = document.getElementById('h-activity').value.trim();
+  if (!activity) return toast('Activity required', 'error');
+  const body = {
+    activity,
+    location: document.getElementById('h-location').value,
+    details: document.getElementById('h-details').value,
+    isAlert: document.getElementById('h-alert').checked,
+    timestamp: document.getElementById('h-ts').value || null,
+    updateStatus: document.getElementById('h-updateStatus').value || undefined
+  };
+  try {
+    const r = await api(`/api/tracking/${editingShipmentId}/history`, { method:'POST', body:JSON.stringify(body) });
+    if (!r.ok) throw new Error((await r.json()).error?.message);
+    toast('History entry added!');
+    document.getElementById('ship-history-add').classList.add('hidden');
+    ['h-activity','h-location','h-details'].forEach(id => document.getElementById(id).value='');
+    // reload history
+    const hr = await api(`/api/tracking/${editingShipmentId}`);
+    const { data } = await hr.json();
+    renderHistoryList(data.history || [], editingShipmentId);
+    loadShipments();
+  } catch(e) { toast(e.message || 'Failed', 'error'); }
+}
+
+async function deleteHistoryEntry(shipId, hid) {
+  await api(`/api/tracking/${shipId}/history/${hid}`, { method:'DELETE' });
+  toast('Entry removed');
+  const r = await api(`/api/tracking/${shipId}`);
+  const { data } = await r.json();
+  renderHistoryList(data.history || [], shipId);
+}
+
+// ── Users ──────────────────────────────────────────────────────────────────────
+async function loadUsers(page=currentUserPage) {
+  currentUserPage = page;
+  const q = document.getElementById('user-search')?.value || '';
+  const role = document.getElementById('user-role-filter')?.value || '';
+  try {
+    const r = await api(`/api/admin/users?q=${encodeURIComponent(q)}&role=${role}&page=${page}&limit=15`);
+    const j = await r.json();
+    const data = j.data || [];
+    const meta = j.meta || {};
+    const tbody = document.getElementById('users-tbody');
+    tbody.innerHTML = data.length ? data.map(u => `
+      <tr class="table-row border-b border-slate-50">
+        <td class="p-3 font-semibold text-brandDark">${u.name}</td>
+        <td class="p-3 text-slate-500">${u.email}</td>
+        <td class="p-3"><span class="badge ${u.role==='admin'?'badge-blue':'badge-gray'}">${u.role}</span></td>
+        <td class="p-3 text-slate-400">${fmtDate(u.createdAt)}</td>
+        <td class="p-3 flex gap-2">
+          <button onclick="editUser('${u.id}')" class="btn-primary btn-sm"><i class="fa fa-pen mr-1"></i>Edit</button>
+          <button onclick="confirm('Delete user ${u.email}?', ()=>deleteUser('${u.id}'))" class="btn-danger btn-sm"><i class="fa fa-trash"></i></button>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="5" class="p-8 text-center text-slate-400 text-xs">No users found</td></tr>`;
+
+    const pages = Math.ceil((meta.total||0) / (meta.limit||15));
+    document.getElementById('users-pagination').innerHTML = Array.from({length:pages},(_,i)=>i+1).map(p =>
+      `<button onclick="loadUsers(${p})" class="px-3 py-1 rounded text-xs font-semibold ${p===page?'bg-brandDark text-white':'bg-slate-100 text-slate-500 hover:bg-slate-200'}">${p}</button>`
+    ).join('');
+  } catch(e) { toast('Failed to load users', 'error'); }
+}
+
+function openUserModal() {
+  editingUserId = null;
+  document.getElementById('user-modal-title').textContent = 'New User';
+  document.getElementById('um-pass-hint').textContent = '';
+  ['um-name','um-email','um-password'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('um-role').value = 'user';
+  document.getElementById('user-modal').classList.remove('hidden');
+}
+
+async function editUser(id) {
+  const r = await api(`/api/admin/users?q=`);
+  const { data } = await r.json();
+  const user = data.find(u => u.id === id);
+  if (!user) return;
+  editingUserId = id;
+  document.getElementById('user-modal-title').textContent = 'Edit User';
+  document.getElementById('um-pass-hint').textContent = '(leave blank to keep)';
+  document.getElementById('um-name').value = user.name || '';
+  document.getElementById('um-email').value = user.email || '';
+  document.getElementById('um-password').value = '';
+  document.getElementById('um-role').value = user.role || 'user';
+  document.getElementById('user-modal').classList.remove('hidden');
+}
+
+async function saveUser() {
+  const body = {};
+  const name = document.getElementById('um-name').value.trim();
+  const email = document.getElementById('um-email').value.trim();
+  const pass = document.getElementById('um-password').value;
+  const role = document.getElementById('um-role').value;
+  if (!name || !email) return toast('Name and email required', 'error');
+  body.name = name; body.email = email; body.role = role;
+  if (pass) body.password = pass;
+  if (!editingUserId && !pass) return toast('Password required for new user', 'error');
+  try {
+    const r = editingUserId
+      ? await api(`/api/admin/users/${editingUserId}`, { method:'PUT', body:JSON.stringify(body) })
+      : await api('/api/admin/users', { method:'POST', body:JSON.stringify(body) });
+    if (!r.ok) throw new Error((await r.json()).error?.message);
+    toast(editingUserId ? 'User updated!' : 'User created!');
+    closeModal('user-modal'); loadUsers();
+  } catch(e) { toast(e.message || 'Failed', 'error'); }
+}
+
+async function deleteUser(id) {
+  await api(`/api/admin/users/${id}`, { method:'DELETE' });
+  toast('User deleted'); loadUsers();
+}
+
+// ── Sessions ───────────────────────────────────────────────────────────────────
+async function loadSessions() {
+  const q = document.getElementById('admin-search')?.value || '';
+  const role = document.getElementById('admin-filter-role')?.value || '';
+  try {
+    const r = await api(`/api/admin/sessions?q=${encodeURIComponent(q)}&role=${role}&page=1&limit=100`);
+    const { data } = await r.json();
+    const el = document.getElementById('admin-sessions-list');
+    el.innerHTML = (data||[]).map(u => `
+      <div class="card p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="font-bold text-brandDark text-sm">${u.name}</span>
+          <span class="text-slate-400 text-xs">${u.email}</span>
+          <span class="badge ${u.role==='admin'?'badge-blue':'badge-gray'} ml-auto">${u.role}</span>
+        </div>
+        ${u.sessions.length ? u.sessions.map(s=>`
+          <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg mb-1 text-xs">
+            <div>
+              <span class="font-semibold text-slate-600">${s.ip||'—'}</span>
+              <span class="text-slate-400 ml-2">${(s.userAgent||'').slice(0,50)}…</span>
+              <span class="text-slate-300 ml-2">Expires: ${fmtDate(s.expiresAt)}</span>
+            </div>
+            <button onclick="confirm('Revoke this session?',()=>revokeSession('${u.id}','${s.id}'))" class="btn-danger btn-sm">Revoke</button>
+          </div>`).join('') : '<div class="text-xs text-slate-400">No active sessions</div>'}
+      </div>`).join('') || '<p class="text-slate-400 text-sm">No sessions found</p>';
+  } catch(e) { toast('Failed to load sessions','error'); }
+}
+
+async function revokeSession(uid, sid) {
+  await api(`/api/admin/sessions/${uid}/${sid}`, { method:'DELETE' });
+  toast('Session revoked'); loadSessions();
+}
+
+function exportSessions() {
+  const q = document.getElementById('admin-search')?.value || '';
+  const role = document.getElementById('admin-filter-role')?.value || '';
+  window.open(`${API}/api/admin/sessions?q=${encodeURIComponent(q)}&role=${role}&exportCsv=1&_token=${token}`,'_blank');
+}
+
+// ── Contacts ───────────────────────────────────────────────────────────────────
+async function loadContacts() {
+  const r = await api('/api/admin/contacts');
+  const { data } = await r.json();
+  const el = document.getElementById('contacts-list');
+  el.innerHTML = (data||[]).length ? data.map(c=>`
+    <div class="card p-4 flex items-start justify-between gap-4">
+      <div>
+        <div class="font-bold text-brandDark text-sm">${c.name} <span class="text-slate-400 font-normal text-xs">&lt;${c.email}&gt;</span></div>
+        ${c.trackingRef ? `<div class="text-xs text-brandAccent font-mono mt-0.5">${c.trackingRef}</div>` : ''}
+        <p class="text-slate-600 text-xs mt-2 leading-relaxed">${c.message}</p>
+        <div class="text-[10px] text-slate-300 mt-1">${fmtDate(c.createdAt)}</div>
+      </div>
+      <button onclick="confirm('Delete this message?',()=>deleteContact('${c.id}'))" class="btn-danger btn-sm flex-shrink-0"><i class="fa fa-trash"></i></button>
+    </div>`).join('') : '<p class="text-slate-400 text-sm text-center py-10">No messages yet</p>';
+}
+
+async function deleteContact(id) {
+  await api(`/api/admin/contacts/${id}`, { method:'DELETE' });
+  toast('Message deleted'); loadContacts();
+}
+
+// ── Settings ───────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  const r = await api('/api/admin/settings');
+  const { data } = await r.json();
+  const s = data.settings || {};
+  ['siteName','tagline','email','phone','address','heroTitle','heroDesc','whatsapp'].forEach(k => {
+    const el = document.getElementById(`cfg-${k}`); if(el) el.value = s[k] || '';
+  });
+  document.getElementById('cfg-maintenance').checked = !!s.maintenanceMode;
+}
+
+async function saveSettings() {
+  const body = {};
+  ['siteName','tagline','email','phone','address','heroTitle','heroDesc','whatsapp'].forEach(k => {
+    body[k] = document.getElementById(`cfg-${k}`)?.value || '';
+  });
+  body.maintenanceMode = document.getElementById('cfg-maintenance').checked;
+  const r = await api('/api/admin/settings', { method:'PUT', body:JSON.stringify(body) });
+  if (r.ok) toast('Settings saved!'); else toast('Failed to save','error');
+}
+
+// ── Clock ──────────────────────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toLocaleString();
+}, 1000);
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  if (token && currentUser?.role === 'admin') {
+    bootDashboard();
+  } else {
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('page-dashboard').classList.remove('active');
+  }
+});
+</script>
+</body>
+</html>
