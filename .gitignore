@@ -37,3 +37,9 @@ Thumbs.db
 ## Deployment
 .render.yaml
 docker-compose*.yml
+# Keep source code private — deploy obfuscated version only
+app.js
+
+# Keep credentials and secrets private
+admin credentials.txt
+swiftlink-backend/.env
