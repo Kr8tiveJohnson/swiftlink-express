@@ -8,6 +8,7 @@ const cors       = require('cors');
 const helmet     = require('helmet');
 const rateLimit  = require('express-rate-limit');
 const path       = require('path');
+const fs         = require('fs');
 
 const { initDB, getDataDir } = require('./utils/db');
 const authRoutes              = require('./routes/auth');
@@ -51,6 +52,9 @@ app.use((err, req, res, _next) => {
 });
 
 async function bootstrap() {
+    if (process.env.NODE_ENV === 'production' && !process.env.DATA_DIR) {
+        console.warn('⚠️  Running in production without DATA_DIR set. Ensure a persistent volume is mounted at /data or set DATA_DIR to the mounted path.');
+    }
     await initDB();
     await seedDatabase();
     app.listen(PORT, () => {

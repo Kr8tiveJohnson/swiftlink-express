@@ -156,7 +156,9 @@ After your code is on GitHub, connect it to Render or Railway:
      - `JWT_SECRET=your-secret-key`
      - `NODE_ENV=production`
      - `DATA_DIR=/data`
-5. Add a **Persistent Disk** at `/data` for database persistence
+5. Add a **Persistent Disk** at `/data` for database persistence.
+
+> Note: `DATA_DIR=/data` is only effective when Render mounts the volume at `/data`. If the volume is omitted, the database will revert after deploys or service restarts.
 6. Deploy
 
 ### For Railway:

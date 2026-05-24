@@ -5,9 +5,9 @@ This project is the Node/Express backend for SwiftLink Express. It serves the fr
 ## Deployment
 
 ### Recommended platforms
-- **Render** — best for a full Node backend with persistent disk or external database.
-- **Railway** — good for Node apps and easy GitHub deployments.
-- **Fly.io** — works well with Docker and persistent volumes.
+- **Render** ï¿½ best for a full Node backend with persistent disk or external database.
+- **Railway** ï¿½ good for Node apps and easy GitHub deployments.
+- **Fly.io** ï¿½ works well with Docker and persistent volumes.
 
 ### Why this matters
 This app currently stores data in a local file at `data/db.json`.
@@ -30,7 +30,9 @@ For data to remain permanent after deploys, the host must provide a persistent d
    - `JWT_SECRET=<your secret>`
    - `NODE_ENV=production`
    - `DATA_DIR=/data`
-7. Mount a persistent disk at `/data`.
+6. Mount a persistent disk at `/data`.
+
+> Important: `DATA_DIR=/data` only preserves data if Render actually mounts a persistent disk at `/data`. Without that disk, `data/db.json` is still ephemeral and will be lost after restarts.
 
 ### Railway setup
 1. Push this repo to GitHub.

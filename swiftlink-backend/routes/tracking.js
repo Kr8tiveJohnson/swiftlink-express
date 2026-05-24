@@ -16,7 +16,12 @@ router.get('/number/:trackingNumber', (req, res) => {
     const shipment = db.get('shipments').find({ trackingNumber: trackingNumber.toUpperCase() }).value()
         || db.get('shipments').find({ trackingNumber }).value();
 
-    if (!shipment) return res.status(404).json({ error: { code: 404, message: 'Tracking number not found' } });
+    if (!shipment) return res.status(404).json({
+        error: {
+            code: 404,
+            message: 'Tracking number not found. This may happen if the backend storage was reset or unavailable.'
+        }
+    });
 
     const history = db.get('history')
         .filter({ shipmentId: shipment.id })

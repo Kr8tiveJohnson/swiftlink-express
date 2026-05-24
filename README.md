@@ -117,7 +117,7 @@ The app will run at `http://localhost:5000`
 PORT=5000                                    # Server port
 JWT_SECRET=your-secret-key                   # JWT signing key
 NODE_ENV=development|production              # Environment
-DATA_DIR=/path/to/persistent/storage         # Database location
+DATA_DIR=/path/to/persistent/storage         # Database location (must be a mounted persistent volume in production)
 ```
 
 ---

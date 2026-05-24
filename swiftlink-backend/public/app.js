@@ -157,14 +157,19 @@ async function lookupShipment() {
     const trackingId = document.getElementById('main-track-input').value.trim();
     const resultBox = document.getElementById('tracking-result-box');
     const errorBox = document.getElementById('tracking-error-box');
+    const errorText = document.getElementById('tracking-error-text');
 
     if (!resultBox || !errorBox) return;
 
     // Reset layout containers
     resultBox.classList.add('hidden');
     errorBox.classList.add('hidden');
+    if (errorText) {
+        errorText.innerText = 'Shipment lookup failed. Confirm your tracking code and contact admin if data has been lost.';
+    }
 
     if (!trackingId) {
+        if (errorText) errorText.innerText = 'Please enter a tracking number.';
         errorBox.classList.remove('hidden');
         return;
     }
@@ -229,6 +234,9 @@ async function lookupShipment() {
         if (res.status === 404) {
             const record = mockShipmentDatabase[trackingId];
             if (!record) {
+                if (errorText) {
+                    errorText.innerText = 'Shipment not found. This may happen when backend storage was reset or data was lost after deploy.';
+                }
                 errorBox.classList.remove('hidden');
                 return;
             }
@@ -274,6 +282,14 @@ async function lookupShipment() {
         }
 
         // Other API errors
+        if (errorText) {
+            try {
+                const body = await res.json();
+                errorText.innerText = body?.error?.message || 'Unable to retrieve tracking data right now. Please try again later.';
+            } catch (_e) {
+                errorText.innerText = 'Unable to retrieve tracking data right now. Please try again later.';
+            }
+        }
         errorBox.classList.remove('hidden');
         return;
     } catch (err) {
@@ -319,6 +335,9 @@ async function lookupShipment() {
             return;
         }
 
+        if (errorText) {
+            errorText.innerText = err?.message || 'Unable to fetch tracking data. Please check your connection and try again.';
+        }
         errorBox.classList.remove('hidden');
         return;
     }
