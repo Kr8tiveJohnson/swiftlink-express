@@ -1,8 +1,3 @@
-/**
- * SwiftLink Express — MongoDB Database Utility
- * Replaces the old LowDB/JSON file-based database.
- * Data now persists permanently in MongoDB Atlas.
- */
 
 const { MongoClient } = require('mongodb');
 

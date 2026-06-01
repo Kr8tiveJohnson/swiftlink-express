@@ -50,20 +50,24 @@ app.use((err, req, res, _next) => {
 });
 
 async function bootstrap() {
+    console.log('[BOOT] Starting SwiftLink Express...');
+    console.log('[BOOT] Node version:', process.version);
+    console.log('[BOOT] MONGODB_URI set:', !!process.env.MONGODB_URI);
+    console.log('[BOOT] JWT_SECRET set:', !!process.env.JWT_SECRET);
+    console.log('[BOOT] NODE_ENV:', process.env.NODE_ENV);
+    console.log('[BOOT] PORT:', PORT);
+    console.log('[BOOT] Connecting to MongoDB...');
     await initDB();
+    console.log('[BOOT] Seeding database...');
     await seedDatabase();
     app.listen(PORT, () => {
-        console.log(`\n✅  SwiftLink Express backend running on http://localhost:${PORT}`);
-        console.log(`📊  Admin Dashboard:  http://localhost:${PORT}/admin`);
-        console.log(`📦  API Base:         http://localhost:${PORT}/api`);
-        console.log(`🗄️   Database:         ${getDataDir()}`);
-        console.log(`\n🔑  Default admin credentials:`);
-        console.log(`    Email:    admin@swiftlink-express.com`);
-        console.log(`    Password: Admin@2025!\n`);
+        console.log('\n[BOOT] Server is live on port', PORT);
+        console.log('[BOOT] Database:', getDataDir());
     });
 }
 
 bootstrap().catch(err => {
-    console.error('Fatal startup error:', err);
+    console.error('[BOOT] Fatal startup error:', err.message);
+    console.error('[BOOT] Stack:', err.stack);
     process.exit(1);
 });
