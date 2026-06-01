@@ -1,5 +1,9 @@
 {
   "devDependencies": {
     "javascript-obfuscator": "^5.4.3"
+  },
+  "dependencies": {
+    "gsap": "^3.15.0",
+    "mongoose": "^9.6.3"
   }
 }
