@@ -1,49 +1,47 @@
 /**
- * Tracking Routes: /api/tracking/*
- * Public endpoints for shipment lookup
+ * Tracking Routes — MongoDB version
  */
 const express = require('express');
 const { getDB } = require('../utils/db');
 const router = express.Router();
 
-// GET /api/tracking/number/:trackingNumber
-router.get('/number/:trackingNumber', (req, res) => {
-    const db = getDB();
-    const settings = db.get('settings').value();
-    if (!settings.allowPublicTracking) return res.status(503).json({ error: { message: 'Tracking temporarily unavailable' } });
+router.get('/number/:trackingNumber', async (req, res) => {
+    try {
+        const db = getDB();
+        const settings = await db.collection('settings').findOne({ _type: 'global' });
+        if (settings && settings.allowPublicTracking === false)
+            return res.status(503).json({ error: { message: 'Tracking temporarily unavailable' } });
 
-    const { trackingNumber } = req.params;
-    const shipment = db.get('shipments').find({ trackingNumber: trackingNumber.toUpperCase() }).value()
-        || db.get('shipments').find({ trackingNumber }).value();
+        const tn = req.params.trackingNumber.toUpperCase();
+        const shipment = await db.collection('shipments').findOne({
+            $or: [{ trackingNumber: tn }, { trackingNumber: req.params.trackingNumber }]
+        });
 
-    if (!shipment) return res.status(404).json({
-        error: {
-            code: 404,
-            message: 'Tracking number not found. This may happen if the backend storage was reset or unavailable.'
-        }
-    });
+        if (!shipment)
+            return res.status(404).json({ error: { code: 404, message: 'Tracking number not found' } });
 
-    const history = db.get('history')
-        .filter({ shipmentId: shipment.id })
-        .sortBy(h => new Date(h.timestamp))
-        .reverse()
-        .value();
+        const history = await db.collection('history')
+            .find({ shipmentId: shipment.id })
+            .sort({ timestamp: -1 })
+            .toArray();
 
-    res.json({ data: { shipment, history } });
+        const { _id, ...safeShipment } = shipment;
+        res.json({ data: { shipment: safeShipment, history: history.map(h => { const { _id, ...rest } = h; return rest; }) } });
+    } catch (err) {
+        res.status(500).json({ error: { message: 'Tracking lookup failed' } });
+    }
 });
 
-// GET /api/tracking/all  (public list, limited info)
-router.get('/all', (req, res) => {
-    const db = getDB();
-    const shipments = db.get('shipments').map(s => ({
-        trackingNumber: s.trackingNumber,
-        status: s.status,
-        origin: s.origin,
-        destination: s.destination,
-        shipDate: s.shipDate,
-        estimatedDeliveryDate: s.estimatedDeliveryDate
-    })).value();
-    res.json({ data: { shipments } });
+router.get('/all', async (req, res) => {
+    try {
+        const db = getDB();
+        const shipments = await db.collection('shipments').find({}, {
+            projection: { trackingNumber: 1, status: 1, origin: 1, destination: 1, shipDate: 1, estimatedDeliveryDate: 1, _id: 0 }
+        }).toArray();
+        res.json({ data: { shipments } });
+    } catch (err) {
+        res.status(500).json({ error: { message: 'Failed to fetch shipments' } });
+    }
 });
 
 module.exports = router;

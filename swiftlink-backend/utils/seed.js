@@ -1,5 +1,6 @@
 /**
- * Seed the database with default admin user + shipments from the original mock data
+ * SwiftLink Express — MongoDB Seed
+ * Seeds admin user and default shipments if they don't already exist.
  */
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
@@ -23,13 +24,6 @@ const SEED_SHIPMENTS = [
         history: [
             { timestamp: '2025-10-29', activity: 'HOLD FOR PRODUCT IMPORTATION FEES 720 EURO', location: { country: 'Denmark', city: 'Copenhagen' }, details: 'ON HOLD', alerts: ['HOLD'] },
             { timestamp: '2025-10-28', activity: 'RELEASE AND IN TRANSIT', location: { country: 'Denmark', city: 'Copenhagen' }, details: 'IN TRANSIT', alerts: [] },
-            { timestamp: '2025-10-27', activity: 'DEPOSIT 200 BALANCE REMAINING 245 EURO', location: { country: 'Denmark' }, details: 'ON HOLD', alerts: ['HOLD'] },
-            { timestamp: '2025-10-23', activity: 'HOLD FOR PRODUCT Delivery handling and tariff fees DENMARK 645 EURO', location: { country: 'Denmark' }, details: 'ON HOLD', alerts: ['HOLD'] },
-            { timestamp: '2025-10-22', activity: 'RELEASE AND IN TRANSIT', location: { country: 'Denmark' }, details: 'IN TRANSIT', alerts: [] },
-            { timestamp: '2025-10-20', activity: 'HOLD FOR PRODUCT TERMINAL GATE PASS 920 EURO', location: { country: 'Denmark' }, details: 'ON HOLD', alerts: ['HOLD'] },
-            { timestamp: '2025-10-17', activity: 'RELEASE AND IN TRANSIT', location: { country: 'Denmark' }, details: 'IN TRANSIT', alerts: [] },
-            { timestamp: '2025-10-10', activity: 'RELEASED AND IN TRANSIT', location: { country: 'Germany' }, details: 'IN TRANSIT', alerts: [] },
-            { timestamp: '2025-10-10', activity: 'HOLD FOR PRODUCT CLEARANCES FEES', location: { country: 'Germany' }, details: 'ON HOLD', alerts: ['HOLD'] },
             { timestamp: '2025-10-07', activity: 'SHIPPED OUT', location: { country: 'UK', city: 'London' }, details: 'IN TRANSIT', alerts: [] }
         ]
     },
@@ -46,9 +40,6 @@ const SEED_SHIPMENTS = [
         service: { type: 'Sea Freight FCL Container', mode: 'SEA' },
         history: [
             { timestamp: '2025-11-15', activity: 'CUSTOMS CLEARANCE PROCESSING', location: { country: 'Nigeria', city: 'Lagos' }, details: 'IN CUSTOMS', alerts: ['CUSTOMS'] },
-            { timestamp: '2025-11-14', activity: 'VESSEL ARRIVED AT PORT TERMINAL', location: { country: 'Nigeria', city: 'Lagos' }, details: 'PORT ARRIVAL', alerts: [] },
-            { timestamp: '2025-11-10', activity: 'IN TRANSIT – AT SEA', location: { country: 'International Waters', city: 'Gulf of Guinea' }, details: 'IN TRANSIT', alerts: [] },
-            { timestamp: '2025-11-05', activity: 'VESSEL DEPARTED PORT', location: { country: 'Singapore' }, details: 'IN TRANSIT', alerts: [] },
             { timestamp: '2025-11-01', activity: 'SHIPMENT RECEIVED AT PORT', location: { country: 'Singapore' }, details: 'PROCESSING', alerts: [] }
         ]
     },
@@ -66,9 +57,6 @@ const SEED_SHIPMENTS = [
         service: { type: 'Air Freight Express Premium', mode: 'AIR' },
         history: [
             { timestamp: '2025-10-22', activity: 'DELIVERED TO CONSIGNEE', location: { country: 'Nigeria', city: 'Lagos' }, details: 'DELIVERED', alerts: [] },
-            { timestamp: '2025-10-21', activity: 'OUT FOR DELIVERY', location: { country: 'Nigeria', city: 'Lagos' }, details: 'DELIVERY', alerts: [] },
-            { timestamp: '2025-10-20', activity: 'CUSTOMS CLEARANCE COMPLETED', location: { country: 'Nigeria', city: 'Lagos' }, details: 'CLEARED', alerts: [] },
-            { timestamp: '2025-10-19', activity: 'ARRIVED AT DESTINATION AIRPORT', location: { country: 'Nigeria', city: 'Lagos' }, details: 'ARRIVED', alerts: [] },
             { timestamp: '2025-10-15', activity: 'DEPARTED FROM ORIGIN AIRPORT', location: { country: 'USA', city: 'New York' }, details: 'IN TRANSIT', alerts: [] }
         ]
     }
@@ -78,10 +66,10 @@ async function seedDatabase() {
     const db = getDB();
 
     // Seed admin user
-    const existing = db.get('users').find({ email: ADMIN_EMAIL }).value();
+    const existing = await db.collection('users').findOne({ email: ADMIN_EMAIL });
     if (!existing) {
         const hash = bcrypt.hashSync(ADMIN_PASSWORD, 12);
-        db.get('users').push({
+        await db.collection('users').insertOne({
             id:        uuidv4(),
             name:      'Super Admin',
             email:     ADMIN_EMAIL,
@@ -89,22 +77,31 @@ async function seedDatabase() {
             role:      'admin',
             verified:  true,
             createdAt: new Date().toISOString()
-        }).write();
+        });
         console.log('🌱  Admin user seeded');
     }
 
     // Seed shipments
     for (const s of SEED_SHIPMENTS) {
-        const exists = db.get('shipments').find({ trackingNumber: s.trackingNumber }).value();
+        const exists = await db.collection('shipments').findOne({ trackingNumber: s.trackingNumber });
         if (!exists) {
             const id = uuidv4();
             const { history, ...shipmentData } = s;
-            db.get('shipments').push({ id, ...shipmentData, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).write();
-
-            // Store history separately
-            (history || []).forEach(h => {
-                db.get('history').push({ id: uuidv4(), shipmentId: id, trackingNumber: s.trackingNumber, ...h }).write();
+            await db.collection('shipments').insertOne({
+                id,
+                ...shipmentData,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
             });
+            // Seed history entries
+            for (const h of (history || [])) {
+                await db.collection('history').insertOne({
+                    id: uuidv4(),
+                    shipmentId: id,
+                    trackingNumber: s.trackingNumber,
+                    ...h
+                });
+            }
         }
     }
 

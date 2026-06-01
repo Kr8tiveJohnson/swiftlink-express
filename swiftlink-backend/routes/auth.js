@@ -1,3 +1,6 @@
+/**
+ * Auth Routes — MongoDB version
+ */
 const express  = require('express');
 const bcrypt   = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
@@ -8,37 +11,32 @@ const router = express.Router();
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        if (!email || !password) {
+        if (!email || !password)
             return res.status(400).json({ error: { message: 'Email and password required' } });
-        }
-        
+
         const db   = getDB();
-        const user = db.get('users').find({ email: email.toLowerCase() }).value();
-        
-        if (!user) {
+        const user = await db.collection('users').findOne({ email: email.toLowerCase() });
+        if (!user)
             return res.status(401).json({ error: { message: 'Invalid credentials' } });
-        }
-        
+
         const match = await bcrypt.compare(password, user.password);
-        if (!match) {
+        if (!match)
             return res.status(401).json({ error: { message: 'Invalid credentials' } });
-        }
-        
+
         const sessionId = uuidv4();
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-        db.get('sessions').push({ 
-            id: sessionId, 
-            userId: user.id, 
-            ip: req.ip, 
-            userAgent: req.headers['user-agent'] || 'unknown', 
-            deviceName: (req.headers['user-agent'] || '').split('(')[0].trim() || 'Browser', 
-            createdAt: new Date().toISOString(), 
-            expiresAt 
-        }).write();
-        
+        await db.collection('sessions').insertOne({
+            id: sessionId,
+            userId: user.id,
+            ip: req.ip,
+            userAgent: req.headers['user-agent'] || 'unknown',
+            deviceName: (req.headers['user-agent'] || '').split('(')[0].trim() || 'Browser',
+            createdAt: new Date().toISOString(),
+            expiresAt
+        });
+
         const token = signToken({ userId: user.id, sessionId, role: user.role });
-        const { password: _p, ...safeUser } = user;
-        
+        const { password: _p, _id, ...safeUser } = user;
         return res.json({ data: { token, user: safeUser } });
     } catch (err) {
         console.error('[LOGIN_ERROR]', err);
@@ -47,24 +45,37 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ error: { message: 'Name, email and password required' } });
-    const db = getDB();
-    if (db.get('users').find({ email: email.toLowerCase() }).value()) return res.status(409).json({ error: { message: 'Email already registered' } });
-    const hash = await bcrypt.hash(password, 12);
-    const newUser = { id: uuidv4(), name, email: email.toLowerCase(), password: hash, role: 'customer', verified: false, createdAt: new Date().toISOString() };
-    db.get('users').push(newUser).write();
-    const { password: _p, ...safeUser } = newUser;
-    res.status(201).json({ data: { user: safeUser, message: 'Account created successfully' } });
+    try {
+        const { name, email, password } = req.body;
+        if (!name || !email || !password)
+            return res.status(400).json({ error: { message: 'Name, email and password required' } });
+
+        const db = getDB();
+        const exists = await db.collection('users').findOne({ email: email.toLowerCase() });
+        if (exists)
+            return res.status(409).json({ error: { message: 'Email already registered' } });
+
+        const hash = await bcrypt.hash(password, 12);
+        const newUser = {
+            id: uuidv4(), name, email: email.toLowerCase(),
+            password: hash, role: 'customer', verified: false,
+            createdAt: new Date().toISOString()
+        };
+        await db.collection('users').insertOne(newUser);
+        const { password: _p, _id, ...safeUser } = newUser;
+        res.status(201).json({ data: { user: safeUser, message: 'Account created successfully' } });
+    } catch (err) {
+        res.status(500).json({ error: { message: 'Registration failed' } });
+    }
 });
 
-router.post('/logout', requireAuth, (req, res) => {
-    getDB().get('sessions').remove({ id: req.session.id }).write();
+router.post('/logout', requireAuth, async (req, res) => {
+    await getDB().collection('sessions').deleteOne({ id: req.session.id });
     res.json({ data: { message: 'Logged out successfully' } });
 });
 
 router.get('/me', requireAuth, (req, res) => {
-    const { password: _p, ...safeUser } = req.user;
+    const { password: _p, _id, ...safeUser } = req.user;
     res.json({ data: { user: safeUser } });
 });
 

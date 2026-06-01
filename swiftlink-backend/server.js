@@ -1,14 +1,12 @@
 /**
- * SwiftLink Express — Backend Server
- * Node.js + Express + LowDB (file-based JSON database, zero config)
+ * SwiftLink Express — Backend Server (MongoDB version)
  */
 require('dotenv').config();
-const express    = require('express');
-const cors       = require('cors');
-const helmet     = require('helmet');
-const rateLimit  = require('express-rate-limit');
-const path       = require('path');
-const fs         = require('fs');
+const express   = require('express');
+const cors      = require('cors');
+const helmet    = require('helmet');
+const rateLimit = require('express-rate-limit');
+const path      = require('path');
 
 const { initDB, getDataDir } = require('./utils/db');
 const authRoutes              = require('./routes/auth');
@@ -39,7 +37,7 @@ app.use('/api/contact',  contactRoutes);
 app.use('/api/admin',    adminRoutes);
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', time: new Date().toISOString(), version: '1.0.0' });
+    res.json({ status: 'ok', time: new Date().toISOString(), version: '2.0.0', db: 'MongoDB Atlas' });
 });
 
 app.use((req, res) => {
@@ -52,16 +50,13 @@ app.use((err, req, res, _next) => {
 });
 
 async function bootstrap() {
-    if (process.env.NODE_ENV === 'production' && !process.env.DATA_DIR) {
-        console.warn('⚠️  Running in production without DATA_DIR set. Ensure a persistent volume is mounted at /data or set DATA_DIR to the mounted path.');
-    }
     await initDB();
     await seedDatabase();
     app.listen(PORT, () => {
         console.log(`\n✅  SwiftLink Express backend running on http://localhost:${PORT}`);
         console.log(`📊  Admin Dashboard:  http://localhost:${PORT}/admin`);
         console.log(`📦  API Base:         http://localhost:${PORT}/api`);
-        console.log(`📁  Database folder:  ${getDataDir()}`);
+        console.log(`🗄️   Database:         ${getDataDir()}`);
         console.log(`\n🔑  Default admin credentials:`);
         console.log(`    Email:    admin@swiftlink-express.com`);
         console.log(`    Password: Admin@2025!\n`);
