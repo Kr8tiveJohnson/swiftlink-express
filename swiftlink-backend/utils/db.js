@@ -1,4 +1,6 @@
-
+/**
+ * SwiftLink Express — MongoDB Database Utility
+ */
 const { MongoClient } = require('mongodb');
 
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -13,16 +15,18 @@ let db;
 async function initDB() {
     try {
         client = new MongoClient(MONGODB_URI, {
-            serverSelectionTimeoutMS: 10000,
-            connectTimeoutMS: 10000,
+            serverSelectionTimeoutMS: 15000,
+            connectTimeoutMS: 15000,
+            socketTimeoutMS: 15000,
             tls: true,
-            tlsAllowInvalidCertificates: false,
-            tlsAllowInvalidHostnames: false,
+            tlsAllowInvalidCertificates: true,
+            tlsAllowInvalidHostnames: true,
         });
-        await client.connect();
-        db = client.db('swiftlink'); // database name inside Atlas
 
-        // Create indexes for fast lookups
+        await client.connect();
+        db = client.db('swiftlink');
+
+        // Create indexes
         await db.collection('shipments').createIndex({ trackingNumber: 1 }, { unique: true });
         await db.collection('sessions').createIndex({ id: 1 });
         await db.collection('sessions').createIndex({ userId: 1 });
