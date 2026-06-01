@@ -20,6 +20,9 @@ async function initDB() {
         client = new MongoClient(MONGODB_URI, {
             serverSelectionTimeoutMS: 10000,
             connectTimeoutMS: 10000,
+            tls: true,
+            tlsAllowInvalidCertificates: false,
+            tlsAllowInvalidHostnames: false,
         });
         await client.connect();
         db = client.db('swiftlink'); // database name inside Atlas
